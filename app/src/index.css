@@ -1,0 +1,248 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 260 100% 99%;
+    --foreground: 260 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 260 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 260 10% 10%;
+
+    --primary: 260 80% 75%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 30% 96%;
+    --secondary-foreground: 260 10% 10%;
+
+    --muted: 260 20% 96%;
+    --muted-foreground: 260 10% 45%;
+
+    --accent: 260 30% 96%;
+    --accent-foreground: 260 10% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 260 20% 92%;
+    --input: 260 20% 92%;
+    --ring: 260 80% 75%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 260 30% 99%;
+    --sidebar-foreground: 260 10% 25%;
+    --sidebar-primary: 260 80% 75%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 30% 96%;
+    --sidebar-accent-foreground: 260 10% 25%;
+    --sidebar-border: 260 20% 90%;
+    --sidebar-ring: 260 80% 75%;
+  }
+
+  .dark {
+    --background: 260 20% 10%;
+    --foreground: 260 10% 95%;
+
+    --card: 260 20% 12%;
+    --card-foreground: 260 10% 95%;
+
+    --popover: 260 20% 12%;
+    --popover-foreground: 260 10% 95%;
+
+    --primary: 260 80% 75%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 20% 20%;
+    --secondary-foreground: 260 10% 95%;
+
+    --muted: 260 20% 20%;
+    --muted-foreground: 260 10% 65%;
+
+    --accent: 260 20% 20%;
+    --accent-foreground: 260 10% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 260 10% 95%;
+
+    --border: 260 20% 20%;
+    --input: 260 20% 20%;
+    --ring: 260 80% 75%;
+
+    --sidebar-background: 260 20% 8%;
+    --sidebar-foreground: 260 10% 90%;
+    --sidebar-primary: 260 80% 75%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 20% 15%;
+    --sidebar-accent-foreground: 260 10% 90%;
+    --sidebar-border: 260 20% 15%;
+    --sidebar-ring: 260 80% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .health-score-excellent {
+    @apply text-green-600 bg-green-100 dark:bg-green-950 dark:text-green-400;
+  }
+  
+  .health-score-good {
+    @apply text-blue-600 bg-blue-100 dark:bg-blue-950 dark:text-blue-400;
+  }
+  
+  .health-score-neutral {
+    @apply text-yellow-600 bg-yellow-100 dark:bg-yellow-950 dark:text-yellow-400;
+  }
+  
+  .health-score-attention {
+    @apply text-orange-600 bg-orange-100 dark:bg-orange-950 dark:text-orange-400;
+  }
+  
+  .health-score-critical {
+    @apply text-red-600 bg-red-100 dark:bg-red-950 dark:text-red-400;
+  }
+
+  .nexus-gradient {
+    @apply bg-gradient-to-r from-nexus-purple to-nexus-purple-dark;
+  }
+  
+  .nexus-category-tag {
+    @apply rounded-full px-3 py-1 text-xs font-medium;
+  }
+  
+  .nexus-category-personal {
+    @apply bg-nexus-pink text-pink-800;
+  }
+  
+  .nexus-category-work {
+    @apply bg-nexus-blue text-blue-800;
+  }
+  
+  .nexus-category-community {
+    @apply bg-nexus-green text-green-800;
+  }
+  
+  .nexus-category-mentors {
+    @apply bg-nexus-purple-light text-nexus-purple-dark;
+  }
+  
+  .nexus-category-network {
+    @apply bg-nexus-yellow text-yellow-800;
+  }
+  
+  .nexus-category-other {
+    @apply bg-nexus-orange text-orange-800;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900;
+  }
+  
+  .button-gradient {
+    @apply bg-gradient-to-r from-nexus-purple to-nexus-purple-dark hover:from-nexus-purple-dark hover:to-nexus-purple;
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+  
+  .animate-slide-in-left {
+    animation: slide-in-left 0.3s ease-out;
+  }
+  
+  .animate-slide-in-bottom {
+    animation: slide-in-bottom 0.3s ease-out;
+  }
+  
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-md;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
+  }
+}

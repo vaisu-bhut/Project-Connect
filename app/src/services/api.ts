@@ -1,0 +1,75 @@
+import axios from 'axios';
+import { Contact } from '@/types';
+
+// Create axios instance with default configuration
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,    
+//   withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Add request interceptor for handling tokens if needed
+// api.interceptors.request.use(
+//   (config) => {
+//     // You can add auth token here if needed
+//     const token = localStorage.getItem('token');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => {
+//     return Promise.reject(error);
+//   }
+// );
+
+// // Add response interceptor for handling common responses
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     // Handle common errors (401, 403, etc.)
+//     if (error.response?.status === 401) {
+//       // Handle unauthorized access
+//       // For example, redirect to login page
+//     }
+//     return Promise.reject(error);
+//   }
+// );
+
+// Contact-related API calls
+export const contactsApi = {
+  getAll: async (): Promise<Contact[]> => {
+    const { data } = await api.get('/contacts');
+    return data;
+  },
+
+  getById: async (id: string): Promise<Contact> => {
+    const { data } = await api.get(`/contacts/${id}`);
+    return data;
+  },
+
+  create: async (contact: Omit<Contact, '_id'>): Promise<Contact> => {
+    const { data } = await api.post('/contacts', contact);
+    return data;
+  },
+
+  update: async (id: string, contact: Partial<Contact>): Promise<Contact> => {
+    console.log('API Update Request:', { id, contact });
+    try {
+      const { data } = await api.put(`/contacts/${id}`, contact);
+      console.log('API Update Response:', data);
+      return data;
+    } catch (error) {
+      console.error('API Update Error:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/contacts/${id}`);
+  }
+};
+
+export default api; 
