@@ -72,4 +72,39 @@ export const contactsApi = {
   }
 };
 
+export const interactionsApi = {
+  create: async (data: FormData) => {
+    const { data: response } = await api.post('/interactions', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response;
+  },
+
+  getByContact: async (contactId: string) => {
+    const { data } = await api.get(`/interactions/contact/${contactId}`);
+    return data;
+  },
+
+  getOne: async (id: string) => {
+    const { data } = await api.get(`/interactions/${id}`);
+    return data;
+  },
+
+  update: async (id: string, data: FormData) => {
+    const { data: response } = await api.put(`/interactions/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response;
+  },
+
+  delete: async (id: string) => {
+    const { data } = await api.delete(`/interactions/${id}`);
+    return data;
+  }
+};
+
 export default api; 

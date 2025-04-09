@@ -51,6 +51,7 @@ import { contactsApi } from "@/services/api";
 import { Badge } from "@/components/ui/badge";
 import { TagIcon } from "lucide-react";
 import { PREDEFINED_TAGS, TagType } from "@/constants/tags";
+import { interactionsApi } from '@/services/api';
 
 const Contacts = () => {
   const [viewProfileOpen, setViewProfileOpen] = useState(false);
@@ -67,11 +68,61 @@ const Contacts = () => {
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeFilters, setActiveFilters] = useState<TagType[]>([]);
+  const [reminders, setReminders] = useState<Array<{ date: string; time: string; message: string }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; file: File }>>([]);
+  const [interactionType, setInteractionType] = useState('');
+  const [interactionDate, setInteractionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [interactionTime, setInteractionTime] = useState('');
+  const [interactionTitle, setInteractionTitle] = useState('');
+  const [interactionNotes, setInteractionNotes] = useState('');
 
-  const handleLogInteraction = (e: React.FormEvent) => {
+  const handleLogInteraction = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLogInteractionOpen(false);
-    toast.success("Interaction logged successfully");
+    
+    if (!selectedContact?._id) {
+      alert('Please select a contact first');
+      return;
+    }
+
+    if (!interactionType || !interactionDate || !interactionTime || !interactionTitle) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      
+      // Add basic interaction data
+      formData.append('contactId', selectedContact._id);
+      formData.append('type', interactionType);
+      formData.append('title', interactionTitle);
+      formData.append('date', interactionDate);
+      formData.append('time', interactionTime);
+      formData.append('notes', interactionNotes || '');
+      
+      // Add reminders
+      formData.append('reminders', JSON.stringify(reminders));
+      
+      // Add attachments
+      attachments.forEach(attachment => {
+        formData.append('attachments', attachment.file);
+      });
+
+      await interactionsApi.create(formData);
+      
+      setLogInteractionOpen(false);
+      setReminders([]);
+      setAttachments([]);
+      setInteractionType('');
+      setInteractionTitle('');
+      setInteractionDate(new Date().toISOString().slice(0, 10));
+      setInteractionTime('');
+      setInteractionNotes('');
+      toast.success("Interaction logged successfully");
+    } catch (error) {
+      console.error('Error logging interaction:', error);
+      toast.error("Failed to log interaction");
+    }
   };
 
   const handleViewProfile = (contact: Contact) => {
@@ -258,6 +309,36 @@ const Contacts = () => {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newAttachments = Array.from(files).map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        file
+      }));
+      setAttachments([...attachments, ...newAttachments]);
+    }
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments(attachments.filter(att => att.id !== id));
+  };
+
+  const handleAddReminder = () => {
+    setReminders([...reminders, { date: '', time: '', message: '' }]);
+  };
+
+  const handleRemoveReminder = (index: number) => {
+    setReminders(reminders.filter((_, i) => i !== index));
+  };
+
+  const handleReminderChange = (index: number, field: 'date' | 'time' | 'message', value: string) => {
+    const updatedReminders = [...reminders];
+    updatedReminders[index] = { ...updatedReminders[index], [field]: value };
+    setReminders(updatedReminders);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -266,7 +347,10 @@ const Contacts = () => {
 
       <ContactList
         onViewProfile={handleViewProfile}
-        onLogInteraction={() => setLogInteractionOpen(true)}
+        onLogInteraction={(contact) => {
+          setSelectedContact(contact);
+          setLogInteractionOpen(true);
+        }}
         contacts={contacts}
         isLoading={isLoading}
         error={error}
@@ -668,84 +752,177 @@ const Contacts = () => {
       </Dialog>
 
       {/* Log Interaction Dialog */}
-      <Dialog open={logInteractionOpen} onOpenChange={setLogInteractionOpen}>
+      <Dialog open={logInteractionOpen} onOpenChange={(open) => {
+        if (!selectedContact && open) {
+          toast.error("Please select a contact first");
+          return;
+        }
+        setLogInteractionOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[540px]">
-          <DialogTitle>Log Interaction</DialogTitle>
+          <DialogTitle>Log Interaction with {selectedContact?.name}</DialogTitle>
           <DialogDescription>
             Record details of your interaction with this contact
           </DialogDescription>
+          
           <form onSubmit={handleLogInteraction}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="interaction-type">Interaction Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type of interaction" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="call">Call</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="meeting">Meeting</SelectItem>
-                    <SelectItem value="coffee">Coffee</SelectItem>
-                    <SelectItem value="lunch">Lunch</SelectItem>
-                    <SelectItem value="event">Event</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="interaction-date">Date</Label>
-                <Input
-                  id="interaction-date"
-                  type="date"
-                  defaultValue={new Date().toISOString().slice(0, 10)}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="interaction-notes">Notes</Label>
-                <Textarea
-                  id="interaction-notes"
-                  placeholder="What did you discuss? Any action items?"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span>Set a reminder to follow up</span>
-                </Label>
-                <div className="ml-6 grid grid-cols-2 gap-2">
-                  <Input
-                    type="date"
-                    defaultValue={new Date(
-                      Date.now() + 14 * 24 * 60 * 60 * 1000
-                    )
-                      .toISOString()
-                      .slice(0, 10)}
-                  />
-                  <Input placeholder="Follow up about project status" />
+            {/* Scrollable content wrapper */}
+            <div className="max-h-[60vh] overflow-y-auto mt-4">
+              <div className="space-y-4 pr-4">
+                {/* Interaction Type */}
+                <div className="grid gap-2">
+                  <Label htmlFor="interaction-type">Interaction Type</Label>
+                  <Select value={interactionType} onValueChange={setInteractionType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type of interaction" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="call">Call</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="meeting">Meeting</SelectItem>
+                      <SelectItem value="coffee">Coffee</SelectItem>
+                      <SelectItem value="lunch">Lunch</SelectItem>
+                      <SelectItem value="event">Event</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              <div className="grid gap-2">
-                <Label>Attachments</Label>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm">
-                    <Plus className="mr-1 h-3 w-3" />
-                    Add File
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Upload files related to this interaction
-                  </p>
+                {/* Title */}
+                <div className="grid gap-2">
+                  <Label htmlFor="interaction-title">Title</Label>
+                  <Input
+                    id="interaction-title"
+                    value={interactionTitle}
+                    onChange={(e) => setInteractionTitle(e.target.value)}
+                    placeholder="Enter a title for this interaction"
+                  />
+                </div>
+
+                {/* Date and Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="interaction-date">Date</Label>
+                    <Input
+                      id="interaction-date"
+                      type="date"
+                      value={interactionDate}
+                      onChange={(e) => setInteractionDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="interaction-time">Time</Label>
+                    <Input
+                      id="interaction-time"
+                      type="time"
+                      value={interactionTime}
+                      onChange={(e) => setInteractionTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="grid gap-2">
+                  <Label htmlFor="interaction-notes">Notes</Label>
+                  <Textarea
+                    id="interaction-notes"
+                    value={interactionNotes}
+                    onChange={(e) => setInteractionNotes(e.target.value)}
+                    placeholder="What did you discuss? Any action items?"
+                  />
+                </div>
+
+                {/* Reminders Section */}
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Reminders</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddReminder}>
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add Reminder
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {reminders.map((reminder, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <div className="grid grid-cols-3 gap-2 flex-1">
+                          <Input
+                            type="date"
+                            value={reminder.date}
+                            onChange={(e) => handleReminderChange(index, 'date', e.target.value)}
+                          />
+                          <Input
+                            type="time"
+                            value={reminder.time}
+                            onChange={(e) => handleReminderChange(index, 'time', e.target.value)}
+                          />
+                          <Input
+                            placeholder="Reminder message"
+                            value={reminder.message}
+                            onChange={(e) => handleReminderChange(index, 'message', e.target.value)}
+                          />
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleRemoveReminder(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Attachments Section */}
+                <div className="grid gap-2">
+                  <Label>Attachments</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add Files
+                      </Button>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Upload files related to this interaction
+                      </p>
+                    </div>
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        {attachments.map((attachment) => (
+                          <div key={attachment.id} className="flex items-center justify-between p-2 border rounded">
+                            <span className="text-sm truncate">{attachment.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveAttachment(attachment.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <DialogFooter>
+
+            {/* Footer */}
+            <DialogFooter className="mt-4 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"

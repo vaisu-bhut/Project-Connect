@@ -52,7 +52,7 @@ import { PREDEFINED_TAGS } from "@/constants/tags";
 
 interface ContactListProps {
   onViewProfile?: (contact: Contact) => void;
-  onLogInteraction?: () => void;
+  onLogInteraction?: (contact: Contact) => void;
   contacts: Contact[];
   isLoading: boolean;
   error: string | null;
@@ -526,7 +526,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                 contact={contact}
                 className={viewMode === "list" ? "flex" : ""}
                 onViewProfile={() => onViewProfile?.(contact)}
-                onLogInteraction={onLogInteraction}
+                onLogInteraction={(contact) => onLogInteraction?.(contact)}
               />
             ))}
           </div>

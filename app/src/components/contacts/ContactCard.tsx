@@ -19,7 +19,7 @@ export interface ContactCardProps {
   contact: Contact;
   className?: string;
   onViewProfile?: () => void;
-  onLogInteraction?: () => void;
+  onLogInteraction?: (contact: Contact) => void;
 }
 
 export const ContactCard = ({
@@ -138,7 +138,7 @@ export const ContactCard = ({
                 variant="outline" 
                 size="sm" 
                 className="w-full hover:shadow-md bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 hover:border-indigo-300 hover:from-indigo-100 hover:to-purple-100 transition-all duration-300"
-                onClick={onLogInteraction}
+                onClick={() => onLogInteraction(contact)}
               >
                 <MessageSquare className="mr-1 h-3.5 w-3.5 text-nexus-purple-dark" />
                 Log Interaction

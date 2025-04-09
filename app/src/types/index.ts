@@ -16,20 +16,23 @@ export interface Category {
 }
 
 export interface Interaction {
-  id: string;
+  _id: string;
   contactId: string;
   type: string;
+  title: string;
   date: string;
+  time: string;
   notes: string;
-  reminder?: {
+  reminders?: Array<{
     date: string;
+    time: string;
     message: string;
-  };
-  attachments?: {
-    id: string;
-    type: "image" | "file" | "voice";
-    url: string;
-  }[];
+  }>;
+  attachments?: Array<{
+    name: string;
+    path: string;
+    type: string;
+  }>;
 }
 
 export interface Contact {

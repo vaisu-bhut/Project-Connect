@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import contactRoutes from './routes/contactRoutes';
+import interactionRoutes from './routes/interactionRoutes';
+import fileRoutes from './routes/fileRoutes';
 
 dotenv.config();
 
@@ -21,6 +23,9 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Routes
 app.use('/api/contacts', contactRoutes);
+app.use('/api/interactions', interactionRoutes);
+app.use('/api', fileRoutes);
+
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/network-nexus';
