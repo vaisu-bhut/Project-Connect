@@ -3,40 +3,40 @@ import { Contact } from '@/types';
 
 // Create axios instance with default configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,    
-//   withCredentials: true,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',    
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   }
 });
 
 // Add request interceptor for handling tokens if needed
-// api.interceptors.request.use(
-//   (config) => {
-//     // You can add auth token here if needed
-//     const token = localStorage.getItem('token');
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//     }
-//     return config;
-//   },
-//   (error) => {
-//     return Promise.reject(error);
-//   }
-// );
+api.interceptors.request.use(
+  (config) => {
+    // You can add auth token here if needed
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-// // Add response interceptor for handling common responses
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     // Handle common errors (401, 403, etc.)
-//     if (error.response?.status === 401) {
-//       // Handle unauthorized access
-//       // For example, redirect to login page
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+// Add response interceptor for handling common responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle common errors (401, 403, etc.)
+    if (error.response?.status === 401) {
+      // Handle unauthorized access
+      // For example, redirect to login page
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Contact-related API calls
 export const contactsApi = {
@@ -73,13 +73,34 @@ export const contactsApi = {
 };
 
 export const interactionsApi = {
-  create: async (data: FormData) => {
-    const { data: response } = await api.post('/interactions', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+  create: async (data: {
+    title: string;
+    type: string;
+    date: string;
+    time: string;
+    notes: string;
+    contactIds: string[];
+    location?: string;
+    userId: string;
+    reminders?: {
+      date: string;
+      time: string;
+      message: string;
+      minutes: number;
+    }[];
+  }) => {
+    const { data: response } = await api.post('/interactions', data);
     return response;
+  },
+
+  getAll: async () => {
+    const { data } = await api.get('/interactions');
+    return data;
+  },
+
+  getByUser: async (userId: string) => {
+    const { data } = await api.get(`/interactions/user/${userId}`);
+    return data;
   },
 
   getByContact: async (contactId: string) => {

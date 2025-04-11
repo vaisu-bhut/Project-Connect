@@ -10,14 +10,35 @@ interface Attachment {
 }
 
 export const interactionController = {
+  // Get all interactions
+  async getAll(req: Request, res: Response) {
+    try {
+      const interactions = await Interaction.find().sort({ date: -1 });
+      res.json(interactions);
+    } catch (error) {
+      res.status(400).json(createError('Failed to fetch interactions', error));
+    }
+  },
+
   // Create a new interaction
   async create(req: Request, res: Response) {
     try {
-      const { contactId, type, title, date, time, notes, reminders } = req.body;
+      const { userId, contactIds, type, title, date, time, notes, location, reminders } = req.body;
       
-      // Validate contactId
-      if (!contactId || !mongoose.Types.ObjectId.isValid(contactId)) {
-        return res.status(400).json(createError('Invalid contact ID'));
+      // Validate required fields
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json(createError('Invalid user ID'));
+      }
+
+      if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json(createError('At least one contact ID is required'));
+      }
+
+      // Validate each contact ID
+      for (const contactId of contactIds) {
+        if (!mongoose.Types.ObjectId.isValid(contactId)) {
+          return res.status(400).json(createError('Invalid contact ID in the list'));
+        }
       }
 
       // Handle file uploads if any
@@ -55,13 +76,15 @@ export const interactionController = {
       }
 
       const interaction = new Interaction({
-        contactId,
+        userId,
+        contactIds,
         type,
         title,
         date,
         time,
         notes,
-        reminders: JSON.parse(reminders),
+        location,
+        reminders,
         attachments
       });
 
@@ -187,6 +210,18 @@ export const interactionController = {
       res.json({ message: 'Interaction deleted successfully' });
     } catch (error) {
       res.status(400).json(createError('Failed to delete interaction', error));
+    }
+  },
+
+  // Get all interactions for a user
+  async getByUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const interactions = await Interaction.find({ userId })
+        .sort({ date: -1 });
+      res.json(interactions);
+    } catch (error) {
+      res.status(400).json(createError('Failed to fetch interactions', error));
     }
   }
 }; 

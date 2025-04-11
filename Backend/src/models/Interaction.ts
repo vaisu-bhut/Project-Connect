@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IInteraction extends Document {
-  contactId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  contactIds: mongoose.Types.ObjectId[];
   type: string;
   title: string;
   date: Date;
@@ -22,11 +23,16 @@ export interface IInteraction extends Document {
 }
 
 const InteractionSchema: Schema = new Schema({
-  contactId: {
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  contactIds: [{
     type: Schema.Types.ObjectId,
     ref: 'Contact',
     required: true
-  },
+  }],
   type: {
     type: String,
     required: true,
