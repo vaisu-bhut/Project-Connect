@@ -14,7 +14,8 @@ import {
   Users,
   Tag,
   Globe,
-  Bell
+  Bell,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,6 +120,8 @@ const Interactions = () => {
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Interaction | null>(null);
   const [isEventPreviewOpen, setIsEventPreviewOpen] = useState(false);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Interaction | null>(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     date: new Date(),
@@ -133,6 +136,8 @@ const Interactions = () => {
     notes: "",
     reminderBefore: "15" // in minutes
   });
+  const [reminders, setReminders] = useState<Array<{ date: string; time: string; message: string }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; file: File }>>([]);
   const [attendeeSearch, setAttendeeSearch] = useState("");
   const [suggestedAttendees, setSuggestedAttendees] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [busySlots, setBusySlots] = useState<Array<{ start: string; end: string }>>([]);
@@ -243,37 +248,54 @@ const Interactions = () => {
         toast.error("Please select an event type");
         return;
       }
-      if (newEvent.attendees.length === 0) {
-        toast.error("Please add at least one attendee");
-        return;
-      }
+
+      // Create FormData for file uploads
+      const formData = new FormData();
+      attachments.forEach(attachment => {
+        formData.append('files', attachment.file);
+      });
 
       // Format the event data according to backend schema
       const eventData = {
-        userId: "64f5c1f37e7a4d001c3f9012", // Using a valid MongoDB ObjectId format
-        contactIds: newEvent.attendees.map(a => a.id),
-        type: newEvent.type.toLowerCase(),
         title: newEvent.title,
+        type: newEvent.type.toLowerCase(),
         date: format(newEvent.date, "yyyy-MM-dd"),
         time: newEvent.isAllDay ? "all-day" : `${newEvent.startTime}-${newEvent.endTime}`,
         notes: newEvent.notes || "",
+        contactIds: newEvent.attendees.map(a => a.id),
         location: newEvent.isOnline ? newEvent.meetingLink : newEvent.location,
-        reminders: [{
-          date: format(newEvent.date, "yyyy-MM-dd"),
-          time: newEvent.startTime,
-          message: `Reminder for: ${newEvent.title}`,
+        userId: "64f5c1f37e7a4d001c3f9012",
+        reminders: reminders.map(reminder => ({
+          date: format(new Date(reminder.date), "yyyy-MM-dd"),
+          time: reminder.time,
+          message: reminder.message,
           minutes: parseInt(newEvent.reminderBefore)
-        }]
+        }))
       };
 
-      // Create the event
-      const createdEvent = await interactionsApi.create(eventData);
-      
-      // Update the interactions list with the new event
-      setInteractions(prev => [createdEvent, ...prev]);
+      let createdEvent;
+      if (isEditingEvent && editingEvent) {
+        // Update existing event
+        createdEvent = await interactionsApi.update(editingEvent._id, eventData);
+        // Upload new attachments if any
+        if (attachments.length > 0) {
+          await interactionsApi.uploadAttachments(editingEvent._id, formData);
+        }
+        // Update the interactions list
+        setInteractions(prev => prev.map(i => i._id === editingEvent._id ? createdEvent : i));
+      } else {
+        // Create new event
+        createdEvent = await interactionsApi.create(eventData);
+        // Upload attachments if any
+        if (attachments.length > 0) {
+          await interactionsApi.uploadAttachments(createdEvent._id, formData);
+        }
+        // Update the interactions list with the new event
+        setInteractions(prev => [createdEvent, ...prev]);
+      }
       
       // Show success message and close dialog
-      toast.success("Event created successfully");
+      toast.success(`Event ${isEditingEvent ? 'updated' : 'created'} successfully`);
       setIsNewEventOpen(false);
       
       // Reset the form
@@ -291,11 +313,45 @@ const Interactions = () => {
         notes: "",
         reminderBefore: "15"
       });
+      setReminders([]);
+      setAttachments([]);
+      setIsEditingEvent(false);
+      setEditingEvent(null);
     } catch (error) {
-      console.error('Error creating event:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to create event");
+      console.error('Error saving event:', error);
+      toast.error(error instanceof Error ? error.message : `Failed to ${isEditingEvent ? 'update' : 'create'} event`);
     }
   };
+
+  // Add effect to populate form when editing
+  useEffect(() => {
+    if (isEditingEvent && editingEvent) {
+      const [startTime, endTime] = editingEvent.time.split('-');
+      setNewEvent({
+        title: editingEvent.title,
+        date: new Date(editingEvent.date),
+        startTime: startTime || "00:00",
+        endTime: endTime || "00:30",
+        location: editingEvent.location || "",
+        isAllDay: editingEvent.time === "all-day",
+        isOnline: editingEvent.location?.startsWith('http'),
+        meetingLink: editingEvent.location?.startsWith('http') ? editingEvent.location : "",
+        attendees: editingEvent.contactIds.map(id => {
+          const contact = contacts[id];
+          return {
+            id: contact._id,
+            name: contact.name,
+            email: contact.email
+          };
+        }),
+        type: editingEvent.type,
+        notes: editingEvent.notes || "",
+        reminderBefore: "15"
+      });
+      setReminders(editingEvent.reminders || []);
+      // Note: We can't pre-populate attachments as they need to be re-uploaded
+    }
+  }, [isEditingEvent, editingEvent, contacts]);
 
   if (isLoading) {
     return (
@@ -598,13 +654,26 @@ const Interactions = () => {
                           <div className="p-4">
                             <div className="flex items-start justify-between mb-4">
                               <h4 className="font-medium">{selectedEvent.title}</h4>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsEventPreviewOpen(false)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingEvent(selectedEvent);
+                                    setIsEditingEvent(true);
+                                    setIsNewEventOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsEventPreviewOpen(false)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="space-y-3">
                               <div className="flex items-center gap-2 text-sm">
@@ -883,6 +952,115 @@ const Interactions = () => {
                   value={newEvent.notes}
                   onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
                 />
+
+                {/* Reminders Section */}
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Reminders</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setReminders([...reminders, { date: '', time: '', message: '' }])}>
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add Reminder
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {reminders.map((reminder, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <div className="grid grid-cols-3 gap-2 flex-1">
+                          <Input
+                            type="date"
+                            value={reminder.date}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].date = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
+                          />
+                          <Input
+                            type="time"
+                            value={reminder.time}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].time = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
+                          />
+                          <Input
+                            placeholder="Reminder message"
+                            value={reminder.message}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].message = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
+                          />
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setReminders(reminders.filter((_, i) => i !== index))}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Attachments Section */}
+                <div className="grid gap-2">
+                  <Label>Attachments</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add Files
+                      </Button>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files) {
+                            const newAttachments = Array.from(files).map(file => ({
+                              id: Math.random().toString(36).substr(2, 9),
+                              name: file.name,
+                              file
+                            }));
+                            setAttachments([...attachments, ...newAttachments]);
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Upload files related to this interaction
+                      </p>
+                    </div>
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        {attachments.map((attachment) => (
+                          <div key={attachment.id} className="flex items-center justify-between p-2 border rounded">
+                            <span className="text-sm truncate">{attachment.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setAttachments(attachments.filter(a => a.id !== attachment.id))}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

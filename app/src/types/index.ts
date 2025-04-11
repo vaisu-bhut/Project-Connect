@@ -17,22 +17,28 @@ export interface Category {
 
 export interface Interaction {
   _id: string;
+  userId: string;
   contactId: string;
+  contactIds: string[];
   type: string;
   title: string;
   date: string;
   time: string;
-  notes: string;
+  notes?: string;
+  location?: string;
   reminders?: Array<{
     date: string;
     time: string;
     message: string;
+    minutes: number;
   }>;
   attachments?: Array<{
+    id: string;
     name: string;
     path: string;
-    type: string;
   }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Contact {

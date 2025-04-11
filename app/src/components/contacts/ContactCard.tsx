@@ -19,14 +19,12 @@ export interface ContactCardProps {
   contact: Contact;
   className?: string;
   onViewProfile?: () => void;
-  onLogInteraction?: (contact: Contact) => void;
 }
 
 export const ContactCard = ({
   contact,
   className,
-  onViewProfile,
-  onLogInteraction
+  onViewProfile
 }: ContactCardProps) => {
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
@@ -38,16 +36,20 @@ export const ContactCard = ({
     <>
       <Card
         className={cn(
-          "h-full transition-all hover:scale-105 animate-fade-in relative flex flex-col", 
+          "h-full transition-all hover:scale-105 animate-fade-in relative flex flex-col cursor-pointer", 
           className
         )}
+        onClick={onViewProfile}
       >
         <CardContent className="p-3 flex flex-col flex-1">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div 
-                className="cursor-pointer hover:opacity-80 transition-opacity relative"
-                onClick={() => setIsImageExpanded(true)}
+                className="hover:opacity-80 transition-opacity relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImageExpanded(true);
+                }}
               >
                 {contact.photoUrl ? (
                   <img
@@ -119,30 +121,6 @@ export const ContactCard = ({
                   <TagBadge key={tag} name={tag} />
                 ))}
               </div>
-            )}
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            {onViewProfile && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="w-full hover:shadow-md bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 transition-all duration-300"
-                onClick={onViewProfile}
-              >
-                View Profile
-              </Button>
-            )}
-            {onLogInteraction && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full hover:shadow-md bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 hover:border-indigo-300 hover:from-indigo-100 hover:to-purple-100 transition-all duration-300"
-                onClick={() => onLogInteraction(contact)}
-              >
-                <MessageSquare className="mr-1 h-3.5 w-3.5 text-nexus-purple-dark" />
-                Log Interaction
-              </Button>
             )}
           </div>
         </CardContent>

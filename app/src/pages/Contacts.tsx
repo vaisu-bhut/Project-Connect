@@ -42,6 +42,9 @@ import {
   Save,
   X,
   Trash2,
+  Globe,
+  Bell,
+  Users
 } from "lucide-react";
 import { TagBadge } from "@/components/shared/TagBadge";
 import { CategoryBadge } from "@/components/shared/CategoryBadge";
@@ -52,6 +55,9 @@ import { Badge } from "@/components/ui/badge";
 import { TagIcon } from "lucide-react";
 import { PREDEFINED_TAGS, TagType } from "@/constants/tags";
 import { interactionsApi } from '@/services/api';
+import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { ContactCard } from "@/components/contacts/ContactCard";
 
 const Contacts = () => {
   const [viewProfileOpen, setViewProfileOpen] = useState(false);
@@ -68,56 +74,81 @@ const Contacts = () => {
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeFilters, setActiveFilters] = useState<TagType[]>([]);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    date: new Date(),
+    startTime: "00:00",
+    endTime: "00:30",
+    location: "",
+    isAllDay: false,
+    isOnline: false,
+    meetingLink: "",
+    attendees: [] as { id: string; name: string; email: string; recommendations?: string[] }[],
+    type: "",
+    notes: ""
+  });
+  const [attendeeSearch, setAttendeeSearch] = useState("");
+  const [suggestedAttendees, setSuggestedAttendees] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [busySlots, setBusySlots] = useState<Array<{ start: string; end: string }>>([]);
   const [reminders, setReminders] = useState<Array<{ date: string; time: string; message: string }>>([]);
   const [attachments, setAttachments] = useState<Array<{ id: string; name: string; file: File }>>([]);
-  const [interactionType, setInteractionType] = useState('');
-  const [interactionDate, setInteractionDate] = useState(new Date().toISOString().slice(0, 10));
-  const [interactionTime, setInteractionTime] = useState('');
-  const [interactionTitle, setInteractionTitle] = useState('');
-  const [interactionNotes, setInteractionNotes] = useState('');
+  const [newRecommendation, setNewRecommendation] = useState("");
 
   const handleLogInteraction = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedContact?._id) {
-      alert('Please select a contact first');
+      toast.error('Please select a contact first');
       return;
     }
 
-    if (!interactionType || !interactionDate || !interactionTime || !interactionTitle) {
-      alert('Please fill in all required fields');
+    if (!newEvent.title || !newEvent.type) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
     try {
-      const formData = new FormData();
-      
-      // Add basic interaction data
-      formData.append('contactId', selectedContact._id);
-      formData.append('type', interactionType);
-      formData.append('title', interactionTitle);
-      formData.append('date', interactionDate);
-      formData.append('time', interactionTime);
-      formData.append('notes', interactionNotes || '');
-      
-      // Add reminders
-      formData.append('reminders', JSON.stringify(reminders));
-      
-      // Add attachments
-      attachments.forEach(attachment => {
-        formData.append('attachments', attachment.file);
-      });
+      const eventData = {
+        title: newEvent.title,
+        type: newEvent.type,
+        date: format(newEvent.date, "yyyy-MM-dd"),
+        time: newEvent.isAllDay ? "all-day" : `${newEvent.startTime}-${newEvent.endTime}`,
+        notes: newEvent.notes || '',
+        contactIds: [selectedContact._id],
+        location: newEvent.isOnline ? newEvent.meetingLink : newEvent.location,
+        userId: "64f5c1f37e7a4d001c3f9012", // Using a valid MongoDB ObjectId format
+        attendees: newEvent.attendees.map(attendee => ({
+          id: attendee.id,
+          name: attendee.name,
+          email: attendee.email,
+          recommendations: (attendee as { recommendations?: string[] }).recommendations || []
+        })),
+        reminders: reminders.map(reminder => ({
+          date: reminder.date,
+          time: reminder.time,
+          message: reminder.message,
+          minutes: 15 // Default reminder time
+        }))
+      };
 
-      await interactionsApi.create(formData);
+      await interactionsApi.create(eventData);
       
       setLogInteractionOpen(false);
       setReminders([]);
       setAttachments([]);
-      setInteractionType('');
-      setInteractionTitle('');
-      setInteractionDate(new Date().toISOString().slice(0, 10));
-      setInteractionTime('');
-      setInteractionNotes('');
+      setNewEvent({
+        title: "",
+        date: new Date(),
+        startTime: "00:00",
+        endTime: "00:30",
+        location: "",
+        isAllDay: false,
+        isOnline: false,
+        meetingLink: "",
+        attendees: [],
+        type: "",
+        notes: ""
+      });
       toast.success("Interaction logged successfully");
     } catch (error) {
       console.error('Error logging interaction:', error);
@@ -347,10 +378,6 @@ const Contacts = () => {
 
       <ContactList
         onViewProfile={handleViewProfile}
-        onLogInteraction={(contact) => {
-          setSelectedContact(contact);
-          setLogInteractionOpen(true);
-        }}
         contacts={contacts}
         isLoading={isLoading}
         error={error}
@@ -759,84 +786,276 @@ const Contacts = () => {
         }
         setLogInteractionOpen(open);
       }}>
-        <DialogContent className="sm:max-w-[540px]">
-          <DialogTitle>Log Interaction with {selectedContact?.name}</DialogTitle>
-          <DialogDescription>
-            Record details of your interaction with this contact
-          </DialogDescription>
-          
-          <form onSubmit={handleLogInteraction}>
-            {/* Scrollable content wrapper */}
-            <div className="max-h-[60vh] overflow-y-auto mt-4">
-              <div className="space-y-4 pr-4">
-                {/* Interaction Type */}
-                <div className="grid gap-2">
-                  <Label htmlFor="interaction-type">Interaction Type</Label>
-                  <Select value={interactionType} onValueChange={setInteractionType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type of interaction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="call">Call</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                      <SelectItem value="coffee">Coffee</SelectItem>
-                      <SelectItem value="lunch">Lunch</SelectItem>
-                      <SelectItem value="event">Event</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <DialogContent className="max-w-5xl w-[1200px] p-0 overflow-hidden">
+          <div className="flex h-[580px] bg-white">
+            {/* Left Section */}
+            <div className="w-[700px] border-r">
+              <div className="p-6 border-b bg-white sticky top-0 z-10">
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Log Interaction with {selectedContact?.name}</DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    Record details of your interaction with this contact
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
 
-                {/* Title */}
-                <div className="grid gap-2">
-                  <Label htmlFor="interaction-title">Title</Label>
+              <div className="p-6 space-y-6 h-[calc(100%-80px)] overflow-y-auto">
+                {/* Title Input */}
+                <div>
                   <Input
-                    id="interaction-title"
-                    value={interactionTitle}
-                    onChange={(e) => setInteractionTitle(e.target.value)}
-                    placeholder="Enter a title for this interaction"
+                    placeholder="Add a title"
+                    className="text-lg border-b border-input hover:border-primary px-0 rounded-none focus-visible:ring-0 focus-visible:border-primary"
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                   />
                 </div>
 
-                {/* Date and Time */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="interaction-date">Date</Label>
+                {/* Date and Time Section */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex gap-2 items-center">
                     <Input
-                      id="interaction-date"
                       type="date"
-                      value={interactionDate}
-                      onChange={(e) => setInteractionDate(e.target.value)}
+                      value={format(newEvent.date, "yyyy-MM-dd")}
+                      onChange={(e) => setNewEvent({ ...newEvent, date: new Date(e.target.value) })}
+                      className="w-[150px]"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="interaction-time">Time</Label>
-                    <Input
-                      id="interaction-time"
-                      type="time"
-                      value={interactionTime}
-                      onChange={(e) => setInteractionTime(e.target.value)}
+                  {!newEvent.isAllDay && (
+                    <div className="flex gap-2 items-center">
+                      <Select value={newEvent.startTime} onValueChange={(value) => setNewEvent({ ...newEvent, startTime: value })}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 48 }).map((_, i) => {
+                            const hour = Math.floor(i / 2);
+                            const minute = i % 2 === 0 ? "00" : "30";
+                            const time = `${hour.toString().padStart(2, "0")}:${minute}`;
+                            return (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <span>to</span>
+                      <Select value={newEvent.endTime} onValueChange={(value) => setNewEvent({ ...newEvent, endTime: value })}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 48 }).map((_, i) => {
+                            const hour = Math.floor(i / 2);
+                            const minute = i % 2 === 0 ? "00" : "30";
+                            const time = `${hour.toString().padStart(2, "0")}:${minute}`;
+                            return (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="allDay" className="text-sm">All day</Label>
+                    <Switch
+                      id="allDay"
+                      checked={newEvent.isAllDay}
+                      onCheckedChange={(checked) => setNewEvent({ ...newEvent, isAllDay: checked })}
                     />
                   </div>
+                </div>
+
+                {/* Location and Online Toggle Section */}
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex gap-2 items-center">
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                      <Input
+                        placeholder={newEvent.isOnline ? "Meeting link (optional)" : "Add location"}
+                        className="border-0 focus-visible:ring-0"
+                        value={newEvent.isOnline ? newEvent.meetingLink : newEvent.location}
+                        onChange={(e) => setNewEvent(newEvent.isOnline 
+                          ? { ...newEvent, meetingLink: e.target.value }
+                          : { ...newEvent, location: e.target.value }
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    <Label htmlFor="online" className="text-sm">Online meeting</Label>
+                    <Switch
+                      id="online"
+                      checked={newEvent.isOnline}
+                      onCheckedChange={(checked) => setNewEvent({ ...newEvent, isOnline: checked })}
+                    />
+                  </div>
+                </div>
+
+                {/* Type and Attendees Section */}
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex gap-2 items-center">
+                      <Tag className="h-5 w-5 text-muted-foreground" />
+                      <Select value={newEvent.type} onValueChange={(value) => setNewEvent({ ...newEvent, type: value })}>
+                        <SelectTrigger className="w-full border-0 focus:ring-0">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                          <SelectItem value="call">Call</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attendees */}
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Add attendees"
+                        className="border-0 focus-visible:ring-0"
+                        value={attendeeSearch}
+                        onChange={(e) => setAttendeeSearch(e.target.value)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setAttendeeSearch("");
+                          }, 200);
+                        }}
+                      />
+                      {suggestedAttendees.length > 0 && (
+                        <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-md border shadow-lg z-10">
+                          {suggestedAttendees.map((attendee) => (
+                            <button
+                              key={attendee.id}
+                              className="w-full px-3 py-2 text-left hover:bg-secondary/50 flex items-center gap-2"
+                              onClick={() => {
+                                setNewEvent({
+                                  ...newEvent,
+                                  attendees: [...newEvent.attendees, { ...attendee, recommendations: [] }]
+                                });
+                                setAttendeeSearch("");
+                              }}
+                              onMouseDown={(e) => e.preventDefault()}
+                            >
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={contacts[attendee.id]?.photoUrl} />
+                                <AvatarFallback>{attendee.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium">{attendee.name}</div>
+                                <div className="text-xs text-muted-foreground truncate">{attendee.email}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {newEvent.attendees.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {newEvent.attendees.map((attendee) => (
+                        <div key={attendee.id} className="space-y-2">
+                          <div className="flex items-center gap-1 bg-secondary rounded-full pl-2 pr-1 py-1">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={contacts[attendee.id]?.photoUrl} />
+                              <AvatarFallback>{attendee.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{attendee.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 hover:bg-secondary/80"
+                              onClick={() => {
+                                setNewEvent({
+                                  ...newEvent,
+                                  attendees: newEvent.attendees.filter(a => a.id !== attendee.id)
+                                });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          {/* Recommendations for this attendee */}
+                          <div className="pl-7 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Add recommendation"
+                                className="h-8 text-sm"
+                                value={newRecommendation}
+                                onChange={(e) => setNewRecommendation(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newRecommendation.trim()) {
+                                    setNewEvent({
+                                      ...newEvent,
+                                      attendees: newEvent.attendees.map(a => 
+                                        a.id === attendee.id 
+                                          ? { ...a, recommendations: [...(a.recommendations || []), newRecommendation.trim()] }
+                                          : a
+                                      )
+                                    });
+                                    setNewRecommendation("");
+                                  }
+                                }}
+                              />
+                            </div>
+                            {attendee.recommendations && attendee.recommendations.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {attendee.recommendations.map((recommendation, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-1 bg-secondary rounded-full pl-2 pr-1 py-1"
+                                  >
+                                    <span className="text-sm">{recommendation}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0 hover:bg-secondary/80"
+                                      onClick={() => {
+                                        setNewEvent({
+                                          ...newEvent,
+                                          attendees: newEvent.attendees.map(a =>
+                                            a.id === attendee.id
+                                              ? { ...a, recommendations: a.recommendations?.filter((_, i) => i !== index) }
+                                              : a
+                                          )
+                                        });
+                                      }}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes */}
-                <div className="grid gap-2">
-                  <Label htmlFor="interaction-notes">Notes</Label>
-                  <Textarea
-                    id="interaction-notes"
-                    value={interactionNotes}
-                    onChange={(e) => setInteractionNotes(e.target.value)}
-                    placeholder="What did you discuss? Any action items?"
-                  />
-                </div>
+                <Textarea
+                  placeholder="Add notes"
+                  className="min-h-[130px] resize-none"
+                  value={newEvent.notes}
+                  onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
+                />
 
                 {/* Reminders Section */}
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label>Reminders</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddReminder}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setReminders([...reminders, { date: '', time: '', message: '' }])}>
                       <Plus className="mr-1 h-3 w-3" />
                       Add Reminder
                     </Button>
@@ -848,24 +1067,36 @@ const Contacts = () => {
                           <Input
                             type="date"
                             value={reminder.date}
-                            onChange={(e) => handleReminderChange(index, 'date', e.target.value)}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].date = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
                           />
                           <Input
                             type="time"
                             value={reminder.time}
-                            onChange={(e) => handleReminderChange(index, 'time', e.target.value)}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].time = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
                           />
                           <Input
                             placeholder="Reminder message"
                             value={reminder.message}
-                            onChange={(e) => handleReminderChange(index, 'message', e.target.value)}
+                            onChange={(e) => {
+                              const updatedReminders = [...reminders];
+                              updatedReminders[index].message = e.target.value;
+                              setReminders(updatedReminders);
+                            }}
                           />
                         </div>
                         <Button 
                           type="button" 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => handleRemoveReminder(index)}
+                          onClick={() => setReminders(reminders.filter((_, i) => i !== index))}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -893,7 +1124,17 @@ const Contacts = () => {
                         type="file"
                         multiple
                         className="hidden"
-                        onChange={handleFileUpload}
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files) {
+                            const newAttachments = Array.from(files).map(file => ({
+                              id: Math.random().toString(36).substr(2, 9),
+                              name: file.name,
+                              file
+                            }));
+                            setAttachments([...attachments, ...newAttachments]);
+                          }
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">
                         Upload files related to this interaction
@@ -908,7 +1149,7 @@ const Contacts = () => {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleRemoveAttachment(attachment.id)}
+                              onClick={() => setAttachments(attachments.filter(a => a.id !== attachment.id))}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -921,18 +1162,82 @@ const Contacts = () => {
               </div>
             </div>
 
-            {/* Footer */}
-            <DialogFooter className="mt-4 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setLogInteractionOpen(false)}
-              >
+            {/* Right Section - Time View */}
+            <div className="w-[500px] flex flex-col h-full bg-white rounded-r-lg overflow-hidden">
+              <div className="p-6 border-b bg-white sticky top-0 z-10">
+                <h3 className="font-medium">
+                  {format(newEvent.date, "EEEE, MMMM d")}
+                </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto relative bg-white">
+                <div className="absolute inset-0 min-w-full bg-white">
+                  <div className="relative py-2">
+                    {/* Busy slots overlay */}
+                    {!newEvent.isAllDay && busySlots.map((slot, index) => {
+                      const startMinutes = parseInt(slot.start.split(':')[0]) * 60 + parseInt(slot.start.split(':')[1]);
+                      const endMinutes = parseInt(slot.end.split(':')[0]) * 60 + parseInt(slot.end.split(':')[1]);
+                      return (
+                        <div
+                          key={index}
+                          className="absolute left-12 right-4 bg-secondary/30"
+                          style={{
+                            top: `${(startMinutes / 1440) * 100}%`,
+                            height: `${((endMinutes - startMinutes) / 1440) * 100}%`,
+                            backdropFilter: 'blur(1px)',
+                            borderLeft: '2px solid var(--secondary)',
+                          }}
+                        />
+                      );
+                    })}
+
+                    {/* Time slots */}
+                    {Array.from({ length: 24 }).map((_, hour) => (
+                      <div key={hour} className="flex items-center">
+                        <div className="w-12 px-2 py-3 text-xs text-muted-foreground sticky left-0 bg-white z-10">
+                          {hour.toString().padStart(2, "0")}:00
+                        </div>
+                        <div className="flex-1 border-t relative mr-4" />
+                      </div>
+                    ))}
+
+                    {/* Selected time slot */}
+                    {!newEvent.isAllDay && (
+                      <div
+                        className="absolute left-12 right-4 bg-primary/20 border-l-2 border-primary"
+                        style={{
+                          top: `${(parseInt(newEvent.startTime.split(':')[0]) * 60 + parseInt(newEvent.startTime.split(':')[1])) / 1440 * 100}%`,
+                          height: `${((parseInt(newEvent.endTime.split(':')[0]) * 60 + parseInt(newEvent.endTime.split(':')[1])) - 
+                                    (parseInt(newEvent.startTime.split(':')[0]) * 60 + parseInt(newEvent.startTime.split(':')[1]))) / 1440 * 100}%`,
+                          minHeight: '40px',
+                          zIndex: 10
+                        }}
+                      >
+                        <div className="p-2 text-xs">
+                          {newEvent.title || "New Event"}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-between p-6 border-t bg-white">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={() => setLogInteractionOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Interaction</Button>
-            </DialogFooter>
-          </form>
+              <Button 
+                size="sm"
+                onClick={handleLogInteraction}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

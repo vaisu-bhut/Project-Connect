@@ -74,20 +74,20 @@ export const contactsApi = {
 
 export const interactionsApi = {
   create: async (data: {
-    title: string;
+    userId: string;
+    contactIds: string[];
     type: string;
+    title: string;
     date: string;
     time: string;
-    notes: string;
-    contactIds: string[];
+    notes?: string;
     location?: string;
-    userId: string;
-    reminders?: {
+    reminders?: Array<{
       date: string;
       time: string;
       message: string;
       minutes: number;
-    }[];
+    }>;
   }) => {
     const { data: response } = await api.post('/interactions', data);
     return response;
@@ -113,19 +113,39 @@ export const interactionsApi = {
     return data;
   },
 
-  update: async (id: string, data: FormData) => {
-    const { data: response } = await api.put(`/interactions/${id}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+  update: async (id: string, data: {
+    userId: string;
+    contactIds: string[];
+    type: string;
+    title: string;
+    date: string;
+    time: string;
+    notes?: string;
+    location?: string;
+    reminders?: Array<{
+      date: string;
+      time: string;
+      message: string;
+      minutes: number;
+    }>;
+  }) => {
+    const { data: response } = await api.put(`/interactions/${id}`, data);
     return response;
   },
 
   delete: async (id: string) => {
     const { data } = await api.delete(`/interactions/${id}`);
     return data;
-  }
+  },
+
+  uploadAttachments: async (eventId: string, formData: FormData) => {
+    const { data } = await api.post(`/interactions/${eventId}/attachments`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data;
+  },
 };
 
 export default api; 
