@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -9,10 +8,10 @@ import {
   Settings, 
   ChevronLeft, 
   ChevronRight,
-  Tag,
   Menu,
   LogOut,
-  Lightbulb
+  Lightbulb,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,13 +30,12 @@ const sidebarItems: SidebarItem[] = [
   { title: "Interactions", icon: CalendarDays, path: "/interactions" },
   { title: "Network Map", icon: Network, path: "/network" },
   { title: "Insights", icon: Lightbulb, path: "/insights" },
-  { title: "Categories", icon: Tag, path: "/categories" },
   { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export const Sidebar = () => {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -50,16 +48,20 @@ export const Sidebar = () => {
       <div className="flex h-14 items-center justify-between border-b px-4 lg:hidden">
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold text-nexus-purple">
-            Network Nexus
+            Nexus
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(!mobileOpen)}
+        <Link
+          to="/insights"
+          className={cn(
+            "flex items-center gap-2 rounded-md px-2 py-1 transition-colors",
+            location.pathname === "/insights"
+              ? "text-nexus-purple"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
-          <Menu className="h-5 w-5" />
-        </Button>
+          <Bell className="h-5 w-5" />
+        </Link>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -87,7 +89,7 @@ export const Sidebar = () => {
           <div className="flex h-14 items-center justify-between border-b px-4">
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-nexus-purple">
-                Network Nexus
+                Nexus
               </span>
             </div>
             <Button
@@ -148,15 +150,17 @@ export const Sidebar = () => {
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden lg:flex h-screen flex-col border-r bg-sidebar transition-all duration-300 relative",
+          "hidden lg:flex h-screen flex-col border-r bg-sidebar transition-all duration-300 ease-in-out fixed left-0 top-0 z-50 overflow-hidden",
           collapsed ? "w-16" : "w-64"
         )}
+        onMouseEnter={() => setCollapsed(false)}
+        onMouseLeave={() => setCollapsed(true)}
       >
         <div className="flex h-14 items-center border-b px-4">
           {!collapsed && (
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-nexus-purple">
-                Network Nexus
+                Nexus
               </span>
             </div>
           )}
@@ -185,13 +189,13 @@ export const Sidebar = () => {
         </div>
         
         <div className="flex-1 overflow-auto py-2">
-          <nav className="grid gap-1 px-2">
+          <nav className="grid gap-3 px-2">
             {sidebarItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   location.pathname === item.path
                     ? "bg-nexus-purple text-primary-foreground"
                     : "hover:bg-accent hover:text-accent-foreground"
@@ -218,21 +222,13 @@ export const Sidebar = () => {
             {!collapsed && "Logout"}
           </Button>
         </div>
-
-        {/* Sidebar collapse button on the border */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-24 h-6 w-6 rounded-full border bg-background shadow-sm"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-3 w-3" />
-          ) : (
-            <ChevronLeft className="h-3 w-3" />
-          )}
-        </Button>
       </div>
+
+      {/* Main Content Spacer */}
+      <div className={cn(
+        "hidden lg:block transition-all duration-300 ease-in-out",
+        collapsed ? "w-16" : "w-64"
+      )} />
     </>
   );
 };
