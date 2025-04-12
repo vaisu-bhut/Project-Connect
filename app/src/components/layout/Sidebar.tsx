@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { useUser } from "@/contexts/UserContext";
 
 interface SidebarItem {
   title: string;
@@ -37,9 +38,20 @@ export const Sidebar = () => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useUser();
 
   const handleLogout = () => {
-    toast.success("Logged out successfully");
+    logout();
+  };
+
+  // Get user's initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -103,14 +115,14 @@ export const Sidebar = () => {
           <div className="p-4 border-b">
             <div className="flex items-center gap-3">
               <Avatar className="h-14 w-14 border-2 border-primary/10">
-                <AvatarImage src="/placeholder.svg" alt="User" />
+                <AvatarImage src={user?.photoUrl} alt={user?.name} />
                 <AvatarFallback className="bg-gradient-to-br from-nexus-purple to-nexus-purple-dark text-white">
-                  UN
+                  {user?.name ? getInitials(user.name) : 'UN'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h3 className="font-semibold">User Name</h3>
-                <p className="text-sm text-muted-foreground">user@example.com</p>
+                <h3 className="font-semibold">{user?.name || 'User Name'}</h3>
+                <p className="text-sm text-muted-foreground">{user?.email || 'user@example.com'}</p>
               </div>
             </div>
           </div>
@@ -175,15 +187,15 @@ export const Sidebar = () => {
             "transition-all duration-300 border-2 border-primary/10",
             collapsed ? "h-9 w-9" : "h-12 w-12"
           )}>
-            <AvatarImage src="/placeholder.svg" alt="User" />
+            <AvatarImage src={user?.photoUrl} alt={user?.name} />
             <AvatarFallback className="bg-gradient-to-br from-nexus-purple to-nexus-purple-dark text-white">
-              UN
+              {user?.name ? getInitials(user.name) : 'UN'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate">User Name</h3>
-              <p className="text-sm text-muted-foreground truncate">user@example.com</p>
+              <h3 className="font-semibold truncate">{user?.name || 'User Name'}</h3>
+              <p className="text-sm text-muted-foreground truncate">{user?.email || 'user@example.com'}</p>
             </div>
           )}
         </div>

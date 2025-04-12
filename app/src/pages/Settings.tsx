@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,32 +9,135 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Save, RefreshCw, Mail, Bell, Shield, Smartphone, Globe, Database, UserPlus, FileDown } from "lucide-react";
+import * as settingsService from '@/services/settingsService';
+import { useUser } from "@/contexts/UserContext";
 
 const Settings = () => {
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [reminderNotifications, setReminderNotifications] = useState(true);
-  const [birthdayNotifications, setBirthdayNotifications] = useState(true);
-  const [dataEncryption, setDataEncryption] = useState(true);
-  const [theme, setTheme] = useState("system");
-  
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const { user, setUser } = useUser();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    bio: ''
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [settings, setSettings] = useState({
+    notifications: {
+      email: {
+        reminders: true,
+        birthdays: true,
+        weeklySummary: true
+      },
+      push: {
+        enabled: true,
+        reminders: true,
+        birthdays: true
+      }
+    },
+    privacy: {
+      dataEncryption: true,
+      profileVisibility: 'private',
+      contactSharing: false
+    },
+    appearance: {
+      theme: 'system',
+      language: 'en'
+    }
+  });
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await settingsService.getUserSettings();
+        setFormData({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          bio: data.bio || ''
+        });
+        if (data.settings) {
+          setSettings(data.settings);
+        }
+      } catch (error) {
+        toast.error('Error loading settings');
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Profile settings saved successfully");
+    try {
+      await settingsService.updateProfile(formData);
+      toast.success("Profile settings saved successfully");
+    } catch (error) {
+      toast.error("Error saving profile settings");
+    }
   };
-  
-  const handleSaveNotifications = () => {
-    toast.success("Notification preferences updated");
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    try {
+      await settingsService.updatePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      toast.success("Password updated successfully");
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast.error("Error updating password");
+    }
   };
-  
-  const handleSavePrivacy = () => {
-    toast.success("Privacy settings updated");
+
+  const handleSaveNotifications = async () => {
+    try {
+      await settingsService.updateNotifications(settings.notifications);
+      toast.success("Notification preferences updated");
+    } catch (error) {
+      toast.error("Error updating notification preferences");
+    }
   };
-  
-  const handleSaveAppearance = () => {
-    toast.success("Appearance settings updated");
+
+  const handleSavePrivacy = async () => {
+    try {
+      await settingsService.updatePrivacy(settings.privacy);
+      toast.success("Privacy settings updated");
+    } catch (error) {
+      toast.error("Error updating privacy settings");
+    }
   };
-  
+
+  const handleSaveAppearance = async () => {
+    try {
+      await settingsService.updateAppearance(settings.appearance);
+      toast.success("Appearance settings updated");
+    } catch (error) {
+      toast.error("Error updating appearance settings");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        await settingsService.deleteAccount();
+        window.location.href = '/login';
+      } catch (error) {
+        toast.error("Error deleting account");
+      }
+    }
+  };
+
   const handleExportData = () => {
     toast.success("Data export initiated. You'll receive an email with your data shortly.");
   };
@@ -67,27 +170,27 @@ const Settings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue="John" />
+                    <Input id="first-name" defaultValue={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue="Doe" />
+                    <Input id="last-name" defaultValue={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                  <Input id="email" type="email" defaultValue={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" defaultValue="(555) 123-4567" />
+                  <Input id="phone" defaultValue={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
-                  <Textarea id="bio" defaultValue="Professional network manager with 10+ years of experience in relationship building." />
+                  <Textarea id="bio" defaultValue={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} />
                 </div>
                 
                 <Button type="submit">
@@ -108,21 +211,21 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
+                <Input id="current-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" />
+                  <Input id="new-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input id="confirm-password" type="password" />
+                  <Input id="confirm-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} />
                 </div>
               </div>
               
-              <Button className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" onClick={handleUpdatePassword}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Update Password
               </Button>
@@ -149,8 +252,8 @@ const Settings = () => {
                   </div>
                   <Switch 
                     id="email-reminders"
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
+                    checked={settings.notifications.email.reminders}
+                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, reminders: value } } })}
                   />
                 </div>
                 
@@ -163,8 +266,8 @@ const Settings = () => {
                   </div>
                   <Switch 
                     id="email-birthdays"
-                    checked={birthdayNotifications}
-                    onCheckedChange={setBirthdayNotifications}
+                    checked={settings.notifications.email.birthdays}
+                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, birthdays: value } } })}
                   />
                 </div>
                 
@@ -175,7 +278,11 @@ const Settings = () => {
                       Receive weekly summary of your network activity
                     </p>
                   </div>
-                  <Switch id="email-digest" />
+                  <Switch 
+                    id="email-digest"
+                    checked={settings.notifications.email.weeklySummary}
+                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, weeklySummary: value } } })}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -199,8 +306,8 @@ const Settings = () => {
                   </div>
                   <Switch 
                     id="push-all"
-                    checked={pushNotifications}
-                    onCheckedChange={setPushNotifications}
+                    checked={settings.notifications.push.enabled}
+                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, push: { ...settings.notifications.push, enabled: value } } })}
                   />
                 </div>
                 
@@ -213,8 +320,8 @@ const Settings = () => {
                   </div>
                   <Switch 
                     id="push-reminders"
-                    checked={reminderNotifications}
-                    onCheckedChange={setReminderNotifications}
+                    checked={settings.notifications.push.reminders}
+                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, push: { ...settings.notifications.push, reminders: value } } })}
                   />
                 </div>
                 
@@ -256,8 +363,8 @@ const Settings = () => {
                   </div>
                   <Switch 
                     id="data-encryption"
-                    checked={dataEncryption}
-                    onCheckedChange={setDataEncryption}
+                    checked={settings.privacy.dataEncryption}
+                    onCheckedChange={(value) => setSettings({ ...settings, privacy: { ...settings.privacy, dataEncryption: value } })}
                   />
                 </div>
                 
@@ -292,7 +399,7 @@ const Settings = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
+                  <Select value={settings.appearance.theme} onValueChange={(value) => setSettings({ ...settings, appearance: { ...settings.appearance, theme: value } })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
@@ -375,8 +482,8 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="destructive">Delete All Contacts</Button>
-              <Button variant="destructive">Delete Account</Button>
+              <Button variant="destructive" onClick={handleDeleteAccount}>Delete All Contacts</Button>
+              <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
             </CardContent>
           </Card>
         </TabsContent>

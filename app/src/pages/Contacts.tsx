@@ -58,8 +58,10 @@ import { interactionsApi } from '@/services/api';
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { ContactCard } from "@/components/contacts/ContactCard";
+import { useUser } from '@/contexts/UserContext';
 
 const Contacts = () => {
+  const { user: currentUser } = useUser();
   const [viewProfileOpen, setViewProfileOpen] = useState(false);
   const [logInteractionOpen, setLogInteractionOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -301,11 +303,13 @@ const Contacts = () => {
         setIsLoading(true);
         setError(null);
         const data = await contactsApi.getAll();
-        setContacts(data);
+        // Filter out the current user's contact
+        const filteredContacts = data.filter(contact => contact.email !== currentUser?.email);
+        setContacts(filteredContacts);
         
         // Extract unique tags from contacts for filtering
         const allTags = new Set<string>();
-        data.forEach(contact => {
+        filteredContacts.forEach(contact => {
           contact.tags?.forEach(tag => allTags.add(tag));
         });
         setAvailableTags(Array.from(allTags));
@@ -317,7 +321,7 @@ const Contacts = () => {
     };
 
     fetchContacts();
-  }, []);
+  }, [currentUser?.email]);
 
   const toggleFilter = (tag: TagType) => {
     if (activeFilters.includes(tag)) {
