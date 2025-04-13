@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = 'https://project-connect-6dxf.onrender.com/api/auth';
 
 export const register = async (email: string, password: string, name: string) => {
     const response = await axios.post(`${API_URL}/register`, {
