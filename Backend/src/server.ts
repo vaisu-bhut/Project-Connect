@@ -18,7 +18,8 @@ app.use(cors({
   origin: ['http://localhost:8080', 'https://connect.vasubhut.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['set-cookie']
 }));
 
 // Cookie parser
