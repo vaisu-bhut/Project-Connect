@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   LayoutDashboard, 
   Users, 
@@ -13,20 +12,15 @@ import {
   Menu
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface SidebarProps {
-  user?: {
-    name: string;
-    image?: string;
-    userId: string;
-  };
-}
-
-export function Sidebar({ user = { name: "John Doe", userId: "john.doe", image: "" } }: SidebarProps) {
+export function Sidebar() {
   const [expanded, setExpanded] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user, loading, logout } = useAuth();
+  // console.log(user); 
   
   // Handle hover effects
   const handleMouseEnter = () => {
@@ -47,9 +41,19 @@ export function Sidebar({ user = { name: "John Doe", userId: "john.doe", image: 
     return null;
   }
 
+  // Get user initials safely
+  const getUserInitials = () => {
+    if (!user?.name) return "JD";
+    return user.name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   // Navigation items
   const navItems = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard },
+    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Contacts", path: "/contacts", icon: Users },
     { name: "Interactions", path: "/interactions", icon: MessageSquare },
     { name: "Reminders", path: "/reminders", icon: Bell },
@@ -83,17 +87,18 @@ export function Sidebar({ user = { name: "John Doe", userId: "john.doe", image: 
 
       {/* User Profile */}
       <div className={`flex items-center p-4 border-b border-sidebar-border ${!expanded ? "flex-col" : ""}`}>
-        <Avatar className="h-10 w-10 bg-gradient-to-br from-network-purple to-network-teal">
-          {user.image ? (
-            <img src={user.image} alt={user.name} />
-          ) : (
-            <div className="font-semibold text-white">{user.name.split(" ").map(n => n[0]).join("")}</div>
-          )}
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={user?.profilePic} alt={user?.name || "User"} />
+          <AvatarFallback className="bg-gradient-to-br from-network-purple to-network-teal">
+            <div className="font-semibold text-white">
+              {getUserInitials()}
+            </div>
+          </AvatarFallback>
         </Avatar>
         {expanded && (
           <div className="ml-3 overflow-hidden">
-            <p className="font-medium truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate">@{user.userId}</p>
+            <p className="font-medium truncate">{user?.name || "Loading..."}</p>
+            <p className="text-xs text-muted-foreground truncate">@{user?.id || "user"}</p>
           </div>
         )}
       </div>
@@ -102,7 +107,7 @@ export function Sidebar({ user = { name: "John Doe", userId: "john.doe", image: 
       <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || 
-                          (item.path !== "/" && location.pathname.startsWith(item.path));
+                          (item.path !== "/dashboard" && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.path}
@@ -130,6 +135,7 @@ export function Sidebar({ user = { name: "John Doe", userId: "john.doe", image: 
         <Button 
           variant="ghost" 
           className={`w-full justify-${expanded ? "start" : "center"} text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300`}
+          onClick={logout}
         >
           <LogOut size={20} />
           {expanded && <span className="ml-2 transition-opacity duration-300">Logout</span>}
