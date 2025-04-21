@@ -1,491 +1,400 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar } from "@/components/ui/avatar";
+import { Bell, Camera, LogOut, Save, User } from "lucide-react";
 import { toast } from "sonner";
-import { Save, RefreshCw, Mail, Bell, Shield, Smartphone, Globe, Database, UserPlus, FileDown } from "lucide-react";
-import * as settingsService from '@/services/settingsService';
-import { useUser } from "@/contexts/UserContext";
 
 const Settings = () => {
-  const { user, setUser } = useUser();
+  // State for editing
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    bio: ''
-  });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [settings, setSettings] = useState({
-    notifications: {
-      email: {
-        reminders: true,
-        birthdays: true,
-        weeklySummary: true
-      },
-      push: {
-        enabled: true,
-        reminders: true,
-        birthdays: true
-      }
-    },
-    privacy: {
-      dataEncryption: true,
-      profileVisibility: 'private',
-      contactSharing: false
-    },
-    appearance: {
-      theme: 'system',
-      language: 'en'
-    }
+    firstName: "John",
+    lastName: "Doe",
+    email: "john.doe@example.com",
+    phone: "+1 (555) 123-4567",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const data = await settingsService.getUserSettings();
-        setFormData({
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          bio: data.bio || ''
-        });
-        if (data.settings) {
-          setSettings(data.settings);
-        }
-      } catch (error) {
-        toast.error('Error loading settings');
-      }
-    };
-
-    loadSettings();
-  }, []);
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await settingsService.updateProfile(formData);
-      toast.success("Profile settings saved successfully");
-    } catch (error) {
-      toast.error("Error saving profile settings");
-    }
+  // Handle form changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData({
+      ...formData,
+      [id]: value
+    });
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match");
+  // Save profile
+  const saveProfile = () => {
+    // Here you would save the profile to your backend
+    console.log("Saving profile:", formData);
+    toast.success("Profile updated successfully!");
+    setIsEditingProfile(false);
+  };
+
+  // Change password
+  const changePassword = () => {
+    if (formData.newPassword !== formData.confirmPassword) {
+      toast.error("Passwords do not match!");
       return;
     }
-    try {
-      await settingsService.updatePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
-      toast.success("Password updated successfully");
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error) {
-      toast.error("Error updating password");
+    
+    if (!formData.currentPassword || !formData.newPassword) {
+      toast.error("Please fill in all password fields!");
+      return;
     }
-  };
-
-  const handleSaveNotifications = async () => {
-    try {
-      await settingsService.updateNotifications(settings.notifications);
-      toast.success("Notification preferences updated");
-    } catch (error) {
-      toast.error("Error updating notification preferences");
-    }
-  };
-
-  const handleSavePrivacy = async () => {
-    try {
-      await settingsService.updatePrivacy(settings.privacy);
-      toast.success("Privacy settings updated");
-    } catch (error) {
-      toast.error("Error updating privacy settings");
-    }
-  };
-
-  const handleSaveAppearance = async () => {
-    try {
-      await settingsService.updateAppearance(settings.appearance);
-      toast.success("Appearance settings updated");
-    } catch (error) {
-      toast.error("Error updating appearance settings");
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      try {
-        await settingsService.deleteAccount();
-        window.location.href = '/login';
-      } catch (error) {
-        toast.error("Error deleting account");
-      }
-    }
-  };
-
-  const handleExportData = () => {
-    toast.success("Data export initiated. You'll receive an email with your data shortly.");
+    
+    // Here you would change the password on your backend
+    console.log("Changing password");
+    toast.success("Password changed successfully!");
+    setIsChangingPassword(false);
+    
+    // Reset password fields
+    setFormData({
+      ...formData,
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Settings</h2>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight gradient-text">Settings</h1>
+        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
-
-      <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="data">Data</TabsTrigger>
+      
+      <Tabs defaultValue="profile" className="space-y-4">
+        <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
+          <TabsTrigger value="profile" className="transition-all duration-200">
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="transition-all duration-200">
+            <Bell className="mr-2 h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="account" className="transition-all duration-200">
+            <User className="mr-2 h-4 w-4" />
+            Account
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="profile" className="mt-6 space-y-6">
-          <Card>
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-4">
+          <Card className="animate-fade-in glass-card">
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle>Profile Information</CardTitle>
               <CardDescription>
-                Update your personal details and contact information.
+                Update your personal information and how it appears across the application.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+            <CardContent className="space-y-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col items-center space-y-2">
+                  <Avatar className="h-24 w-24 bg-gradient-to-br from-network-purple to-network-blue animate-pulse-slow">
+                    <div className="font-semibold text-2xl text-white">JD</div>
+                  </Avatar>
+                  <Button size="sm" variant="outline" className="mt-2">
+                    <Camera className="mr-2 h-4 w-4" /> Change
+                  </Button>
+                </div>
+                
+                <div className="space-y-4 flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName" 
+                        value={formData.firstName} 
+                        onChange={handleInputChange}
+                        disabled={!isEditingProfile}
+                        className={isEditingProfile ? "border-network-purple" : ""}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName" 
+                        value={formData.lastName} 
+                        onChange={handleInputChange}
+                        disabled={!isEditingProfile}
+                        className={isEditingProfile ? "border-network-purple" : ""}
+                      />
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={formData.email} 
+                      onChange={handleInputChange}
+                      disabled={!isEditingProfile}
+                      className={isEditingProfile ? "border-network-purple" : ""}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      value={formData.phone} 
+                      onChange={handleInputChange}
+                      disabled={!isEditingProfile}
+                      className={isEditingProfile ? "border-network-purple" : ""}
+                    />
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" defaultValue={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea id="bio" defaultValue={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} />
-                </div>
-                
-                <Button type="submit">
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Profile
-                </Button>
-              </form>
+              </div>
             </CardContent>
+            <CardFooter className="flex justify-end">
+              {isEditingProfile ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsEditingProfile(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={saveProfile}
+                    className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
+                  >
+                    <Save className="mr-2 h-4 w-4" /> Save Changes
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setIsEditingProfile(true)}
+                  className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
+                >
+                  Edit Profile
+                </Button>
+              )}
+            </CardFooter>
           </Card>
-          
-          <Card>
+        </TabsContent>
+        
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-4">
+          <Card className="animate-fade-in glass-card">
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>
+                Choose how you want to be notified about activities and reminders.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Reminder Notifications</h3>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Receive reminder notifications via email</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>In-App Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Show reminders in the application</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Reminder Time</Label>
+                    <p className="text-sm text-muted-foreground">When to send reminder notifications</p>
+                  </div>
+                  <div className="flex w-[180px]">
+                    <Input type="number" defaultValue="30" className="rounded-r-none" />
+                    <Button variant="outline" className="rounded-l-none border-l-0">minutes before</Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Interaction Notifications</h3>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>New Interaction Summaries</Label>
+                    <p className="text-sm text-muted-foreground">Receive a daily summary of new interactions</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Contact Birthdays</Label>
+                    <p className="text-sm text-muted-foreground">Get notified about contact birthdays</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button 
+                className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
+                onClick={() => toast.success("Notification preferences saved!")}
+              >
+                <Save className="mr-2 h-4 w-4" /> Save Preferences
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Account Tab */}
+        <TabsContent value="account" className="space-y-4">
+          <Card className="animate-fade-in glass-card">
             <CardHeader>
               <CardTitle>Account Settings</CardTitle>
               <CardDescription>
-                Manage your account and security preferences.
+                Manage your account security and preferences.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input id="confirm-password" type="password" onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} />
-                </div>
-              </div>
-              
-              <Button className="w-full sm:w-auto" onClick={handleUpdatePassword}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Update Password
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="notifications" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Notifications</CardTitle>
-              <CardDescription>
-                Control which email notifications you receive.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <div className="space-y-4">
+                <h3 className="text-lg font-medium">Password</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input 
+                    id="currentPassword" 
+                    type="password" 
+                    value={formData.currentPassword}
+                    onChange={handleInputChange}
+                    disabled={!isChangingPassword}
+                    className={isChangingPassword ? "border-network-purple" : ""}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input 
+                    id="newPassword" 
+                    type="password" 
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                    disabled={!isChangingPassword}
+                    className={isChangingPassword ? "border-network-purple" : ""}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    disabled={!isChangingPassword}
+                    className={isChangingPassword ? "border-network-purple" : ""}
+                  />
+                </div>
+                
+                {isChangingPassword ? (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        setFormData({
+                          ...formData,
+                          currentPassword: "",
+                          newPassword: "",
+                          confirmPassword: ""
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={changePassword}
+                      className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
+                    >
+                      Change Password
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    className="w-full md:w-auto"
+                    onClick={() => setIsChangingPassword(true)}
+                  >
+                    Change Password
+                  </Button>
+                )}
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Data & Privacy</h3>
+                
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="email-reminders">Reminders</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive email reminders for follow-ups
-                    </p>
+                    <Label>Data Backup</Label>
+                    <p className="text-sm text-muted-foreground">Automatically backup your data</p>
                   </div>
-                  <Switch 
-                    id="email-reminders"
-                    checked={settings.notifications.email.reminders}
-                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, reminders: value } } })}
-                  />
+                  <Switch defaultChecked />
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="email-birthdays">Birthdays & Special Dates</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified about upcoming birthdays and special dates
-                    </p>
+                    <Label>Analytics</Label>
+                    <p className="text-sm text-muted-foreground">Help improve the app by sharing anonymous usage data</p>
                   </div>
-                  <Switch 
-                    id="email-birthdays"
-                    checked={settings.notifications.email.birthdays}
-                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, birthdays: value } } })}
-                  />
+                  <Switch defaultChecked />
                 </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
                 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <Label htmlFor="email-digest">Weekly Summary</Label>
+                    <Label className="text-destructive">Delete Account</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receive weekly summary of your network activity
+                      Permanently delete your account and all associated data. This action cannot be undone.
                     </p>
                   </div>
-                  <Switch 
-                    id="email-digest"
-                    checked={settings.notifications.email.weeklySummary}
-                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, email: { ...settings.notifications.email, weeklySummary: value } } })}
-                  />
+                  <Button 
+                    variant="destructive"
+                    onClick={() => toast.error("This feature is disabled in the demo.")}
+                  >
+                    Delete Account
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Push Notifications</CardTitle>
-              <CardDescription>
-                Configure in-app and mobile notifications.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="push-all">Enable Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive notifications on your devices
-                    </p>
-                  </div>
-                  <Switch 
-                    id="push-all"
-                    checked={settings.notifications.push.enabled}
-                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, push: { ...settings.notifications.push, enabled: value } } })}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="push-reminders">Reminders</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified about upcoming follow-ups
-                    </p>
-                  </div>
-                  <Switch 
-                    id="push-reminders"
-                    checked={settings.notifications.push.reminders}
-                    onCheckedChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, push: { ...settings.notifications.push, reminders: value } } })}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="push-insights">Insights & Suggestions</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive network insights and connection suggestions
-                    </p>
-                  </div>
-                  <Switch id="push-insights" />
-                </div>
-              </div>
-              
-              <Button className="mt-6" onClick={handleSaveNotifications}>
-                <Bell className="mr-2 h-4 w-4" />
-                Save Notification Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="privacy" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Privacy</CardTitle>
-              <CardDescription>
-                Control how your data is stored and used.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="data-encryption">Enhanced Data Encryption</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Store your contacts with additional encryption
-                    </p>
-                  </div>
-                  <Switch 
-                    id="data-encryption"
-                    checked={settings.privacy.dataEncryption}
-                    onCheckedChange={(value) => setSettings({ ...settings, privacy: { ...settings.privacy, dataEncryption: value } })}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="analytics">Usage Analytics</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Help improve the app by sharing anonymous usage data
-                    </p>
-                  </div>
-                  <Switch id="analytics" />
-                </div>
-              </div>
-              
-              <Button className="mt-6" onClick={handleSavePrivacy}>
-                <Shield className="mr-2 h-4 w-4" />
-                Save Privacy Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="appearance" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Display Preferences</CardTitle>
-              <CardDescription>
-                Customize how the application looks and feels.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select value={settings.appearance.theme} onValueChange={(value) => setSettings({ ...settings, appearance: { ...settings.appearance, theme: value } })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="default-view">Default Contact View</Label>
-                  <Select defaultValue="grid">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select default view" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="grid">Grid</SelectItem>
-                      <SelectItem value="list">List</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <Button className="mt-6" onClick={handleSaveAppearance}>
-                <Globe className="mr-2 h-4 w-4" />
-                Save Appearance Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="data" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Import & Export</CardTitle>
-              <CardDescription>
-                Manage your contact data import and export.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="mb-2 text-sm font-medium">Import Contacts</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Button variant="outline">
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Import from CSV
-                    </Button>
-                    <Button variant="outline">
-                      <Mail className="mr-2 h-4 w-4" />
-                      Import from Google
-                    </Button>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="mb-2 text-sm font-medium">Export Data</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Button variant="outline" onClick={handleExportData}>
-                      <FileDown className="mr-2 h-4 w-4" />
-                      Export All Data
-                    </Button>
-                    <Button variant="outline">
-                      <Database className="mr-2 h-4 w-4" />
-                      Export Contacts Only
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>
-                Actions here cannot be undone.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="destructive" onClick={handleDeleteAccount}>Delete All Contacts</Button>
-              <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
-            </CardContent>
-          </Card>
+          <Button 
+            variant="destructive" 
+            className="flex items-center gap-2"
+            onClick={() => toast.info("Logged out successfully!")}
+          >
+            <LogOut className="h-4 w-4" /> Logout
+          </Button>
         </TabsContent>
       </Tabs>
     </div>

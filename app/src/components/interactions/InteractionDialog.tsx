@@ -1,0 +1,497 @@
+import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { 
+  Dialog, 
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Avatar } from "@/components/ui/avatar";
+import { CalendarIcon, Clock, Plus, X } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { contacts } from "@/data/sampleData";
+import { ContactBase } from "@/types";
+import { toast } from "sonner";
+
+const interactionFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  type: z.string().min(1, "Type is required"),
+  date: z.date({
+    required_error: "Date is required",
+  }),
+  time: z.string().min(1, "Time is required"),
+  location: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
+});
+
+type InteractionFormValues = z.infer<typeof interactionFormSchema>;
+
+interface InteractionDialogProps {
+  trigger: React.ReactNode;
+  defaultContacts?: ContactBase[];
+  onSave?: (data: InteractionFormValues & { contacts: ContactBase[] }) => void;
+}
+
+export function InteractionDialog({ trigger, defaultContacts = [], onSave }: InteractionDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState<ContactBase[]>(defaultContacts);
+  const [contactSearch, setContactSearch] = useState("");
+  const [reminders, setReminders] = useState<Array<{ title: string; date: string; description?: string }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ name: string; url: string; type: string }>>([]);
+
+  const form = useForm<InteractionFormValues>({
+    resolver: zodResolver(interactionFormSchema),
+    defaultValues: {
+      title: "",
+      type: "",
+      date: new Date(),
+      time: "",
+      location: "",
+      notes: "",
+    },
+  });
+
+  const filteredContacts = contacts.filter(
+    contact => 
+      !selectedContacts.some(sc => sc.id === contact.id) && 
+      (`${contact.firstName} ${contact.lastName}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(contactSearch.toLowerCase()))
+  );
+
+  const handleAddContact = (contact: ContactBase) => {
+    setSelectedContacts([...selectedContacts, contact]);
+    setContactSearch("");
+  };
+
+  const handleRemoveContact = (contactId: string) => {
+    setSelectedContacts(selectedContacts.filter(c => c.id !== contactId));
+  };
+
+  const onSubmit = (data: InteractionFormValues) => {
+    if (selectedContacts.length === 0) {
+      toast.error("Please add at least one contact");
+      return;
+    }
+
+    const interactionData = {
+      ...data,
+      contacts: selectedContacts,
+    };
+
+    if (onSave) {
+      onSave(interactionData);
+    }
+
+    toast.success("Interaction logged successfully!");
+
+    setOpen(false);
+
+    form.reset();
+    if (defaultContacts.length === 0) {
+      setSelectedContacts([]);
+    }
+  };
+
+  const handleAddReminder = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const reminder = {
+      title: formData.get('title') as string,
+      date: formData.get('date') as string,
+      description: formData.get('description') as string
+    };
+    setReminders([...reminders, reminder]);
+    toast.success("Reminder added successfully!");
+    (e.target as HTMLFormElement).reset();
+  };
+
+  const handleAddAttachment = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const attachment = {
+      name: formData.get('name') as string,
+      url: formData.get('url') as string,
+      type: formData.get('type') as string
+    };
+    setAttachments([...attachments, attachment]);
+    toast.success("Attachment added successfully!");
+    (e.target as HTMLFormElement).reset();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto glass-card animate-scale-in">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold">Log Interaction</DialogTitle>
+          <DialogDescription>
+            Record a new interaction with your contacts. Fill in the details below.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Coffee Meeting, Phone Call" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Meeting">Meeting</SelectItem>
+                        <SelectItem value="Call">Call</SelectItem>
+                        <SelectItem value="Email">Email</SelectItem>
+                        <SelectItem value="Social">Social</SelectItem>
+                        <SelectItem value="Event">Event</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="time"
+                        />
+                      </FormControl>
+                      <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Location */}
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., Cafe, Office, Online" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Contacts */}
+            <div className="space-y-2">
+              <FormLabel>Contacts</FormLabel>
+              
+              {/* Selected Contacts */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedContacts.map(contact => (
+                  <div 
+                    key={contact.id} 
+                    className="flex items-center gap-2 bg-muted px-2 py-1 rounded-full animate-fade-in"
+                  >
+                    <Avatar className="h-6 w-6 bg-network-purple">
+                      <div className="font-semibold text-xs text-white">
+                        {contact.firstName[0]}{contact.lastName[0]}
+                      </div>
+                    </Avatar>
+                    <span className="text-sm">{contact.firstName} {contact.lastName}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveContact(contact.id)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Contact Search */}
+              <div className="relative">
+                <Input 
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  placeholder="Search contacts..."
+                />
+                
+                {contactSearch && (
+                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto animate-fade-in">
+                    {filteredContacts.length > 0 ? (
+                      filteredContacts.map(contact => (
+                        <div 
+                          key={contact.id}
+                          className="flex items-center gap-2 p-2 hover:bg-muted cursor-pointer"
+                          onClick={() => handleAddContact(contact)}
+                        >
+                          <Avatar className="h-8 w-8 bg-network-purple">
+                            <div className="font-semibold text-xs text-white">
+                              {contact.firstName[0]}{contact.lastName[0]}
+                            </div>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{contact.firstName} {contact.lastName}</p>
+                            {contact.email && (
+                              <p className="text-xs text-muted-foreground">{contact.email}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-2 text-center text-muted-foreground">
+                        No contacts found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Notes */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder="Details about the interaction..." />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Reminders Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Reminders</h3>
+              <div className="space-y-2">
+                {reminders.map((reminder, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                    <div>
+                      <p className="font-medium">{reminder.title}</p>
+                      <p className="text-sm text-muted-foreground">{reminder.date}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setReminders(reminders.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Plus className="mr-2 h-4 w-4" /> Add Reminder
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Reminder</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddReminder}>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="title">Title</Label>
+                        <Input id="title" name="title" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="date">Date & Time</Label>
+                        <Input id="date" name="date" type="datetime-local" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Description (optional)</Label>
+                        <Textarea id="description" name="description" />
+                      </div>
+                    </div>
+                    <DialogFooter className="mt-4">
+                      <Button type="submit">Add Reminder</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            {/* Attachments Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Attachments</h3>
+              <div className="space-y-2">
+                {attachments.map((attachment, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                    <div>
+                      <p className="font-medium">{attachment.name}</p>
+                      <p className="text-sm text-muted-foreground">{attachment.type}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Plus className="mr-2 h-4 w-4" /> Add Attachment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Attachment</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddAttachment}>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" name="name" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="url">URL</Label>
+                        <Input id="url" name="url" type="url" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="type">Type</Label>
+                        <Input id="type" name="type" placeholder="PDF, Image, etc." required />
+                      </div>
+                    </div>
+                    <DialogFooter className="mt-4">
+                      <Button type="submit">Add Attachment</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setOpen(false);
+                  form.reset();
+                  if (defaultContacts.length === 0) {
+                    setSelectedContacts([]);
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
+              >
+                Log Interaction
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

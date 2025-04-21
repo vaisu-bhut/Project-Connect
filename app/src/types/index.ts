@@ -1,103 +1,68 @@
-import { PREDEFINED_TAGS } from "../constants/tags";
 
-export type TagType = typeof PREDEFINED_TAGS[number];
-
-export interface Tag {
+// Contact types
+export interface ContactBase {
   id: string;
-  name: string;
-  color?: string;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  subcategories?: Category[];
-  color?: string;
-}
-
-export interface Interaction {
-  _id: string;
-  userId: string;
-  contactId: string;
-  contactIds: string[];
-  type: string;
-  title: string;
-  date: string;
-  time: string;
-  notes?: string;
-  location?: string;
-  reminders?: Array<{
-    date: string;
-    time: string;
-    message: string;
-    minutes: number;
-  }>;
-  attachments?: Array<{
-    id: string;
-    name: string;
-    path: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Contact {
-  _id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email?: string;
   phone?: string;
-  photoUrl?: string;
-  socialLinks?: {
-    platform: string;
-    url: string;
-  }[];
+  image?: string;
   category: string;
   tags: string[];
-  connectionStrength: number; // 0-100
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ContactDetail extends ContactBase {
+  address?: string;
+  company?: string;
+  jobTitle?: string;
   notes?: string;
-  lastInteraction?: string;
-  customFields?: Record<string, string>;
-  meetThroughContactId?: string;
+  socialProfiles?: {
+    type: string;
+    url: string;
+  }[];
+  customFields?: {
+    key: string;
+    value: string;
+  }[];
 }
 
-export interface CustomField {
+// Interaction types
+export interface InteractionBase {
   id: string;
-  name: string;
-  type: "text" | "date" | "number" | "url";
-}
-
-export interface NetworkInsight {
-  id: string;
-  type: 
-    | "reach-out" 
-    | "introduce" 
-    | "celebration" 
-    | "network-stat";
   title: string;
-  description: string;
-  contacts?: string[];
-  date?: string;
-  isRead: boolean;
-  priority?: "high" | "medium" | "low";
+  type: string;
+  date: Date;
+  contacts: ContactBase[];
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface CategoryDistribution {
-  category: string;
-  count: number;
-  color: string;
+export interface InteractionDetail extends InteractionBase {
+  location?: string;
+  attachments?: {
+    name: string;
+    url: string;
+    type: string;
+  }[];
+  reminders?: ReminderBase[];
 }
 
-export interface InteractionMetric {
-  month: string;
-  count: number;
+// Reminder types
+export interface ReminderBase {
+  id: string;
+  title: string;
+  date: Date;
+  isCompleted: boolean;
+  interactionId?: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface NetworkOverview {
-  totalContacts: number;
-  activeContacts: number;
-  averageConnectionStrength: number;
-  needAttention: number;
-  insights: NetworkInsight[];
-  categoryDistribution: CategoryDistribution[];
-  interactionMetrics: InteractionMetric[];
+export interface ReminderDetail extends ReminderBase {
+  notes?: string;
+  interaction?: InteractionBase;
 }
