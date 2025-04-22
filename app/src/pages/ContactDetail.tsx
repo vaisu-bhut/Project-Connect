@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -18,40 +18,58 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { contacts, interactions } from "@/data/sampleData";
 import { ContactDialog } from "@/components/contacts/ContactDialog";
 import { InteractionDialog } from "@/components/interactions/InteractionDialog";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ContactBase, InteractionBase } from "@/types";
+import type { ContactDetail } from "@/types";
+import { contactService } from "@/services/ContactService";
+import { interactionService } from "../services/InteractionService";
+import { dummyInteractions } from "@/data/dummyInteractions";
 
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [customFields, setCustomFields] = useState<{ key: string; value: string; }[]>([]);
+  const [contact, setContact] = useState<ContactDetail | null>(null);
+  const [interactions, setInteractions] = useState<InteractionBase[]>([]);
+  const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
   
-  const contact = contacts.find(c => c.id === id);
-  
-  const contactInteractions = interactions.filter(interaction => 
-    interaction.contacts.some(c => c.id === id)
-  );
-  
-  const handleEditContact = (data: any) => {
-    console.log("Edited contact:", data);
-    toast.success("Contact updated successfully!");
-    setEditing(false);
-  };
-  
-  const handleLogInteraction = (data: any) => {
-    console.log("New interaction:", data);
-    toast.success("Interaction logged successfully!");
-  };
-  
-  const handleDeleteContact = () => {
-    toast.success("Contact deleted successfully!");
-    navigate("/contacts");
-  };
-  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (id) {
+          // Only fetch contact data from API
+          const contactData = await contactService.getContact(id);
+          setContact(contactData);
+          if (contactData.customFields) {
+            setCustomFields(contactData.customFields);
+          }
+          // Use dummy data for interactions
+          setInteractions(dummyInteractions);
+        }
+      } catch (error) {
+        console.error('Failed to fetch contact data:', error);
+        toast.error('Failed to load contact data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   if (!contact) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20">
@@ -64,7 +82,40 @@ const ContactDetail = () => {
     );
   }
 
-  const [customFields, setCustomFields] = useState(contact?.customFields || []);
+  const contactInteractions = interactions.filter(interaction => 
+    interaction.contacts.some(c => c._id === id)
+  );
+  
+  const handleEditContact = async (data: Partial<ContactDetail>) => {
+    try {
+      if (id) {
+        const updatedContact = await contactService.updateContact(id, data);
+        setContact(updatedContact);
+        toast.success("Contact updated successfully!");
+      }
+    } catch (error) {
+      console.error('Failed to update contact:', error);
+      toast.error('Failed to update contact');
+    }
+  };
+  
+  const handleLogInteraction = (data: { 
+    title?: string; 
+    type?: string; 
+    date?: Date; 
+    notes?: string; 
+    time?: string; 
+    location?: string; 
+    contacts: ContactBase[] 
+  }) => {
+    console.log("New interaction:", data);
+    toast.success("Interaction logged successfully!");
+  };
+  
+  const handleDeleteContact = () => {
+    toast.success("Contact deleted successfully!");
+    navigate("/contacts");
+  };
   
   const handleAddCustomField = () => {
     const dialog = document.createElement('dialog');
@@ -146,11 +197,11 @@ const ContactDetail = () => {
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-24 w-24 bg-gradient-to-br from-network-purple to-network-blue">
-                {contact.image ? (
-                  <img src={contact.image} alt={`${contact.firstName} ${contact.lastName}`} />
+                {contact?.image ? (
+                  <img src={contact.image} alt={`${contact.firstName} ${contact.lastName}`} className="w-full h-full object-cover" />
                 ) : (
                   <div className="font-semibold text-2xl text-white">
-                    {contact.firstName[0]}{contact.lastName[0]}
+                    {contact?.firstName[0]}{contact?.lastName[0]}
                   </div>
                 )}
               </Avatar>
@@ -221,7 +272,7 @@ const ContactDetail = () => {
               
               <Separator className="my-6 sm:block hidden" />
               
-              <div className="flex gap-2 w-full sm:block hidden">
+              <div className="flex gap-2 w-full sm:block">
                 <ContactDialog
                   trigger={
                     <Button variant="outline" className="flex-1">
@@ -384,7 +435,7 @@ const ContactDetail = () => {
                   ) : (
                     <div className="space-y-3">
                       {contactInteractions.map(interaction => (
-                        <Link to={`/interactions/${interaction.id}`} key={interaction.id}>
+                        <Link to={`/interactions/${interaction._id}`} key={interaction._id}>
                           <div className="interaction-item">
                             <div className="flex justify-between items-start">
                               <div>
@@ -405,9 +456,9 @@ const ContactDetail = () => {
                                 <span className="text-xs text-muted-foreground">With:</span>
                                 <div className="flex flex-wrap gap-1">
                                   {interaction.contacts
-                                    .filter(c => c.id !== id)
+                                    .filter(c => c._id !== id)
                                     .map(c => (
-                                      <Badge key={c.id} variant="secondary" className="text-xs">
+                                      <Badge key={c._id} variant="secondary" className="text-xs">
                                         {c.firstName} {c.lastName}
                                       </Badge>
                                     ))
@@ -427,12 +478,18 @@ const ContactDetail = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Notes</h3>
-                    <Button size="sm" variant="outline">
-                      <Edit className="mr-2 h-4 w-4" /> Edit Notes
-                    </Button>
+                    <ContactDialog
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          <Edit className="mr-2 h-4 w-4" /> Edit Notes
+                        </Button>
+                      }
+                      contact={contact}
+                      onSave={handleEditContact}
+                    />
                   </div>
                   
-                  {contact.notes ? (
+                  {contact?.notes ? (
                     <div className="p-4 rounded-lg bg-muted/40">
                       <p className="whitespace-pre-line">{contact.notes}</p>
                     </div>
@@ -441,7 +498,7 @@ const ContactDetail = () => {
                       <Edit className="h-10 w-10 text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold">No notes yet</h3>
                       <p className="text-muted-foreground mt-1">
-                        Add some notes about {contact.firstName}.
+                        Add some notes about {contact?.firstName}.
                       </p>
                     </div>
                   )}
