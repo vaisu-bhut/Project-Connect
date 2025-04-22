@@ -14,8 +14,10 @@ const contactSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  phone: String,
   jobTitle: String,
   company: String,
+  address: String,
   category: {
     type: String,
     required: true
@@ -24,6 +26,27 @@ const contactSchema = new mongoose.Schema({
     type: String
   }],
   image: String,
+  notes: String,
+  socialProfiles: [{
+    type: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    }
+  }],
+  customFields: [{
+    key: {
+      type: String,
+      required: true
+    },
+    value: {
+      type: String,
+      required: true
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

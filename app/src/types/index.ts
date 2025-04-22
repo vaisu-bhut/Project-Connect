@@ -11,6 +11,10 @@ export interface ContactBase {
   image?: string;
   createdAt: string;
   updatedAt: string;
+  socialProfiles?: {
+    type: string;
+    url: string;
+  }[];
   customFields?: {
     key: string;
     value: string;

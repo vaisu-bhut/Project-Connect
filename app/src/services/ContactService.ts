@@ -28,7 +28,11 @@ export const contactService = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(contact),
+      body: JSON.stringify({
+        ...contact,
+        socialProfiles: contact.socialProfiles || [],
+        customFields: contact.customFields || []
+      }),
     });
     if (!response.ok) {
       throw new Error('Failed to create contact');
@@ -42,7 +46,11 @@ export const contactService = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(contact),
+      body: JSON.stringify({
+        ...contact,
+        socialProfiles: contact.socialProfiles || [],
+        customFields: contact.customFields || []
+      }),
     });
     if (!response.ok) {
       throw new Error('Failed to update contact');

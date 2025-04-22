@@ -67,8 +67,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
   const [open, setOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<ContactBase[]>(defaultContacts);
   const [contactSearch, setContactSearch] = useState("");
-  const [reminders, setReminders] = useState<Array<{ title: string; date: string; description?: string }>>([]);
-  const [attachments, setAttachments] = useState<Array<{ name: string; url: string; type: string }>>([]);
+  const [reminders, setReminders] = useState<Array<{ id: string; title: string; date: string; description?: string }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; url: string; type: string }>>([]);
 
   const form = useForm<InteractionFormValues>({
     resolver: zodResolver(interactionFormSchema),
@@ -84,7 +84,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
 
   const filteredContacts = contacts.filter(
     contact => 
-      !selectedContacts.some(sc => sc.id === contact.id) && 
+      !selectedContacts.some(sc => sc._id === contact._id) && 
       (`${contact.firstName} ${contact.lastName}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
       contact.email?.toLowerCase().includes(contactSearch.toLowerCase()))
   );
@@ -95,7 +95,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
   };
 
   const handleRemoveContact = (contactId: string) => {
-    setSelectedContacts(selectedContacts.filter(c => c.id !== contactId));
+    setSelectedContacts(selectedContacts.filter(c => c._id !== contactId));
   };
 
   const onSubmit = (data: InteractionFormValues) => {
@@ -127,6 +127,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const reminder = {
+      id: crypto.randomUUID(),
       title: formData.get('title') as string,
       date: formData.get('date') as string,
       description: formData.get('description') as string
@@ -140,6 +141,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const attachment = {
+      id: crypto.randomUUID(),
       name: formData.get('name') as string,
       url: formData.get('url') as string,
       type: formData.get('type') as string
@@ -287,18 +289,18 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
               <div className="flex flex-wrap gap-2 mb-2">
                 {selectedContacts.map(contact => (
                   <div 
-                    key={contact.id} 
+                    key={contact._id} 
                     className="flex items-center gap-2 bg-muted px-2 py-1 rounded-full animate-fade-in"
                   >
                     <Avatar className="h-6 w-6 bg-network-purple">
                       <div className="font-semibold text-xs text-white">
                         {contact.firstName[0]}{contact.lastName[0]}
                       </div>
-                    </Avatar>
+                    </Avatar> 
                     <span className="text-sm">{contact.firstName} {contact.lastName}</span>
                     <button 
                       type="button"
-                      onClick={() => handleRemoveContact(contact.id)}
+                      onClick={() => handleRemoveContact(contact._id)}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3 w-3" />
@@ -320,7 +322,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     {filteredContacts.length > 0 ? (
                       filteredContacts.map(contact => (
                         <div 
-                          key={contact.id}
+                          key={contact._id}
                           className="flex items-center gap-2 p-2 hover:bg-muted cursor-pointer"
                           onClick={() => handleAddContact(contact)}
                         >
@@ -366,8 +368,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
             <div className="space-y-4">
               <h3 className="font-semibold">Reminders</h3>
               <div className="space-y-2">
-                {reminders.map((reminder, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                {reminders.map((reminder) => (
+                  <div key={reminder.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{reminder.title}</p>
                       <p className="text-sm text-muted-foreground">{reminder.date}</p>
@@ -375,7 +377,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setReminders(reminders.filter((_, i) => i !== index))}
+                      onClick={() => setReminders(reminders.filter(r => r.id !== reminder.id))}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -419,8 +421,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
             <div className="space-y-4">
               <h3 className="font-semibold">Attachments</h3>
               <div className="space-y-2">
-                {attachments.map((attachment, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                {attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{attachment.name}</p>
                       <p className="text-sm text-muted-foreground">{attachment.type}</p>
@@ -428,7 +430,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                      onClick={() => setAttachments(attachments.filter(a => a.id !== attachment.id))}
                     >
                       <X className="h-4 w-4" />
                     </Button>

@@ -44,6 +44,7 @@ const ContactDetail = () => {
         if (id) {
           // Only fetch contact data from API
           const contactData = await contactService.getContact(id);
+          // console.log('Contact data:', contactData);
           setContact(contactData);
           if (contactData.customFields) {
             setCustomFields(contactData.customFields);
@@ -89,8 +90,17 @@ const ContactDetail = () => {
   const handleEditContact = async (data: Partial<ContactDetail>) => {
     try {
       if (id) {
-        const updatedContact = await contactService.updateContact(id, data);
+        const updatedContact = await contactService.updateContact(id, {
+          ...data,
+          tags: data.tags || [],
+          image: data.image || contact?.image || "",
+          socialProfiles: data.socialProfiles || contact?.socialProfiles || [],
+          customFields: data.customFields || contact?.customFields || []
+        });
         setContact(updatedContact);
+        if (updatedContact.customFields) {
+          setCustomFields(updatedContact.customFields);
+        }
         toast.success("Contact updated successfully!");
       }
     } catch (error) {
@@ -140,16 +150,28 @@ const ContactDetail = () => {
     document.body.appendChild(dialog);
     
     const form = dialog.querySelector('form');
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target as HTMLFormElement);
       const newField = {
         key: formData.get('key') as string,
         value: formData.get('value') as string
       };
-      setCustomFields([...customFields, newField]);
-      dialog.close();
-      toast.success("Custom field added successfully!");
+      
+      try {
+        if (id) {
+          const updatedContact = await contactService.updateContact(id, {
+            customFields: [...customFields, newField]
+          });
+          setCustomFields(updatedContact.customFields || []);
+          setContact(updatedContact);
+          dialog.close();
+          toast.success("Custom field added successfully!");
+        }
+      } catch (error) {
+        console.error('Failed to add custom field:', error);
+        toast.error('Failed to add custom field');
+      }
     });
     
     dialog.addEventListener('close', () => {
@@ -178,6 +200,7 @@ const ContactDetail = () => {
                   <Edit className="h-4 w-4" />
                 </Button>
               }
+              contact={contact}
               onSave={handleEditContact}
             />
             <Button 
@@ -279,6 +302,7 @@ const ContactDetail = () => {
                       <Edit className="mr-2 h-4 w-4" /> Edit
                     </Button>
                   }
+                  contact={contact}
                   onSave={handleEditContact}
                 />
                 <Button variant="destructive" className="flex-1" onClick={handleDeleteContact}>
@@ -307,7 +331,7 @@ const ContactDetail = () => {
               <TabsList className="grid grid-cols-3 mb-6">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="interactions">Interactions</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="customFields">Custom Fields</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details" className="space-y-6">
@@ -344,33 +368,30 @@ const ContactDetail = () => {
                 
                 <Separator />
                 
-                {(contact.jobTitle || contact.company) && (
-                  <>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Work Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {contact.jobTitle && (
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Job Title</p>
-                            <p className="font-medium">{contact.jobTitle}</p>
-                          </div>
-                        )}
-                        
-                        {contact.company && (
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Company</p>
-                            <p className="font-medium">{contact.company}</p>
-                          </div>
-                        )}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Work Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {contact.company && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Company</p>
+                        <p className="font-medium">{contact.company}</p>
                       </div>
-                    </div>
+                    )}
                     
-                    <Separator />
-                  </>
-                )}
+                    {contact.jobTitle && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Job Title</p>
+                        <p className="font-medium">{contact.jobTitle}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <Separator />
                 
                 {contact.socialProfiles && contact.socialProfiles.length > 0 && (
                   <>
+                    <Separator />
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Social Profiles</h3>
                       <div className="space-y-2">
@@ -389,23 +410,17 @@ const ContactDetail = () => {
                         ))}
                       </div>
                     </div>
-                    
-                    <Separator />
                   </>
                 )}
                 
-                {contact.customFields && contact.customFields.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Additional Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {contact.customFields.map((field, index) => (
-                        <div key={index} className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{field.key}</p>
-                          <p className="font-medium">{field.value}</p>
-                        </div>
-                      ))}
+                {contact.notes && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Notes</h3>
+                      <p className="text-muted-foreground">{contact.notes}</p>
                     </div>
-                  </div>
+                  </>
                 )}
               </TabsContent>
               
@@ -474,62 +489,41 @@ const ContactDetail = () => {
                 </div>
               </TabsContent>
               
-              <TabsContent value="notes">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Notes</h3>
-                    <ContactDialog
-                      trigger={
-                        <Button size="sm" variant="outline">
-                          <Edit className="mr-2 h-4 w-4" /> Edit Notes
-                        </Button>
-                      }
-                      contact={contact}
-                      onSave={handleEditContact}
-                    />
-                  </div>
-                  
-                  {contact?.notes ? (
-                    <div className="p-4 rounded-lg bg-muted/40">
-                      <p className="whitespace-pre-line">{contact.notes}</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Edit className="h-10 w-10 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold">No notes yet</h3>
-                      <p className="text-muted-foreground mt-1">
-                        Add some notes about {contact?.firstName}.
-                      </p>
-                    </div>
-                  )}
+              <TabsContent value="customFields" className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Custom Fields</h3>
+                  <Button 
+                    variant="outline"
+                    onClick={handleAddCustomField}
+                    size="sm"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Field
+                  </Button>
                 </div>
+                
+                {contact.customFields && contact.customFields.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {contact.customFields.map((field, index) => (
+                      <div key={index} className="space-y-2">
+                        <p className="text-sm text-muted-foreground">{field.key}</p>
+                        <p className="font-medium">{field.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Plus className="h-10 w-10 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">No custom fields yet</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Add custom fields to store additional information.
+                    </p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
       </div>
-      
-      {customFields && customFields.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-4">Custom Fields</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {customFields.map((field, index) => (
-              <div key={index} className="space-y-2">
-                <p className="text-sm text-muted-foreground">{field.key}</p>
-                <p className="font-medium">{field.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      <Button 
-        variant="outline"
-        onClick={handleAddCustomField}
-        className="mt-4"
-      >
-        <Plus className="mr-2 h-4 w-4" /> Add Custom Field
-      </Button>
       
       {isMobile && (
         <div className="fixed bottom-20 right-4 z-20">
