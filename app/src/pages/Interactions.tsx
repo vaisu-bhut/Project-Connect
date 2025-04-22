@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,19 +23,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Check, ChevronDown, Clock, Filter, MessageSquare, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
-import { interactions } from "@/data/sampleData";
 import { InteractionDialog } from "@/components/interactions/InteractionDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { InteractionBase } from "@/types";
+import { interactionService } from "@/services/InteractionService";
 
 const Interactions = () => {
+  const [interactions, setInteractions] = useState<InteractionBase[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<string>("dateDesc");
   const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    const fetchInteractions = async () => {
+      try {
+        const data = await interactionService.getAllInteractions();
+        setInteractions(data);
+      } catch (error) {
+        console.error('Failed to fetch interactions:', error);
+        toast.error('Failed to load interactions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInteractions();
+  }, []);
   
   // Extract unique interaction types
   const interactionTypes = Array.from(new Set(interactions.map(interaction => interaction.type)));
@@ -71,10 +89,19 @@ const Interactions = () => {
     }
   });
   
-  const handleLogInteraction = (data: any) => {
-    console.log("New interaction:", data);
-    // In a real app, this would add the interaction to the database
-    toast.success("Interaction logged successfully!");
+  const handleLogInteraction = async (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newInteraction = await interactionService.createInteraction({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      setInteractions(prev => [newInteraction, ...prev]);
+      toast.success("Interaction logged successfully!");
+    } catch (error) {
+      console.error('Failed to log interaction:', error);
+      toast.error('Failed to log interaction');
+    }
   };
 
   // Add attachment function
@@ -92,6 +119,14 @@ const Interactions = () => {
     toast.success("Reminder added successfully!");
     (e.target as HTMLFormElement).reset();
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 sm:pb-0">
@@ -191,7 +226,7 @@ const Interactions = () => {
       ) : (
         <div className="space-y-4">
           {sortedInteractions.map(interaction => (
-            <Link to={`/interactions/${interaction.id}`} key={interaction.id}>
+            <Link to={`/interactions/${interaction._id}`} key={interaction._id}>
               <Card className="interaction-item hover:scale-[1.01]">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
@@ -214,13 +249,13 @@ const Interactions = () => {
                   <div className="flex items-center">
                     <span className="text-sm text-muted-foreground mr-2">With:</span>
                     <div className="flex -space-x-2 overflow-hidden">
-                      {interaction.contacts.map(contact => (
-                        <Avatar key={contact.id} className="h-7 w-7 border-2 border-background bg-gradient-to-br from-network-purple to-network-blue">
+                      {interaction.contacts.map((contact, index) => (
+                        <Avatar key={`${interaction._id}-${contact._id}-${index}-${Math.random().toString(36).substr(2, 9)}`} className="h-7 w-7 border-2 border-background bg-gradient-to-br from-network-purple to-network-blue">
                           {contact.image ? (
                             <img src={contact.image} alt={`${contact.firstName} ${contact.lastName}`} />
                           ) : (
                             <div className="font-semibold text-xs text-white">
-                              {contact.firstName[0]}{contact.lastName[0]}
+                              {contact.firstName?.[0] ?? ''}{contact.lastName?.[0] ?? ''}
                             </div>
                           )}
                         </Avatar>

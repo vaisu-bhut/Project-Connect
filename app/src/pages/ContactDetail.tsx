@@ -26,7 +26,6 @@ import { ContactBase, InteractionBase } from "@/types";
 import type { ContactDetail } from "@/types";
 import { contactService } from "@/services/ContactService";
 import { interactionService } from "../services/InteractionService";
-import { dummyInteractions } from "@/data/dummyInteractions";
 
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,19 +41,20 @@ const ContactDetail = () => {
     const fetchData = async () => {
       try {
         if (id) {
-          // Only fetch contact data from API
+          // Fetch contact data
           const contactData = await contactService.getContact(id);
-          // console.log('Contact data:', contactData);
           setContact(contactData);
           if (contactData.customFields) {
             setCustomFields(contactData.customFields);
           }
-          // Use dummy data for interactions
-          setInteractions(dummyInteractions);
+          
+          // Fetch interactions for this contact
+          const contactInteractions = await interactionService.getInteractionsByContactId(id);
+          setInteractions(contactInteractions);
         }
       } catch (error) {
-        console.error('Failed to fetch contact data:', error);
-        toast.error('Failed to load contact data');
+        console.error('Failed to fetch data:', error);
+        toast.error('Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -109,17 +109,32 @@ const ContactDetail = () => {
     }
   };
   
-  const handleLogInteraction = (data: { 
-    title?: string; 
-    type?: string; 
-    date?: Date; 
+  const handleLogInteraction = async (data: { 
+    title: string; 
+    type: string; 
+    date: Date; 
     notes?: string; 
     time?: string; 
     location?: string; 
     contacts: ContactBase[] 
   }) => {
-    console.log("New interaction:", data);
-    toast.success("Interaction logged successfully!");
+    try {
+      if (id) {
+        const newInteraction = await interactionService.createInteraction({
+          ...data,
+          contacts: [contact!, ...data.contacts],
+          date: data.date,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        setInteractions(prev => [newInteraction, ...prev]);
+        toast.success("Interaction logged successfully!");
+      }
+    } catch (error) {
+      console.error('Failed to log interaction:', error);
+      toast.error('Failed to log interaction');
+    }
   };
   
   const handleDeleteContact = () => {

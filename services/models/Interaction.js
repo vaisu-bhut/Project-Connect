@@ -26,6 +26,13 @@ const interactionSchema = new mongoose.Schema({
   notes: String,
   location: String,
   time: String,
+  attachments: [
+    {
+      name: { type: String },
+      url: { type: String },
+      type: { type: String }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now

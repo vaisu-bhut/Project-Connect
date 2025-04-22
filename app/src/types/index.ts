@@ -43,6 +43,13 @@ export interface InteractionBase {
   date: Date;
   contacts: ContactBase[];
   notes?: string;
+  location?: string;
+  reminders?: ReminderBase[];
+  attachments?: {
+    name: string;
+    url: string;
+    type: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }

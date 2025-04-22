@@ -92,7 +92,9 @@ const Contacts = () => {
   };
   
   const getInitials = (contact: ContactBase) => {
-    return `${contact.firstName[0]}${contact.lastName[0]}`;
+    const first = contact.firstName?.[0] ?? '';
+    const last = contact.lastName?.[0] ?? '';
+    return `${first}${last}`;
   };
 
   const handleAddContact = async (data: Omit<ContactBase, 'id'>) => {

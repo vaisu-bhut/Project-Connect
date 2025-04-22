@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const interactionRoutes = require('./routes/interactionRoutes');
+const reminderRoutes = require('./routes/reminderRoutes');
 const authMiddleware = require('./middleware/auth');
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/interactions', interactionRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 // Protected route example
 app.get('/api/protected', authMiddleware, (req, res) => {
