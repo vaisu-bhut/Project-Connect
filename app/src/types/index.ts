@@ -1,22 +1,29 @@
-
 // Contact types
 export interface ContactBase {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
-  email?: string;
-  phone?: string;
-  image?: string;
+  email: string;
+  jobTitle?: string;
+  company?: string;
   category: string;
   tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  image?: string;
+  createdAt: string;
+  updatedAt: string;
+  socialProfiles?: {
+    type: string;
+    url: string;
+  }[];
+  customFields?: {
+    key: string;
+    value: string;
+  }[];
 }
 
 export interface ContactDetail extends ContactBase {
+  phone?: string;
   address?: string;
-  company?: string;
-  jobTitle?: string;
   notes?: string;
   socialProfiles?: {
     type: string;
@@ -30,12 +37,19 @@ export interface ContactDetail extends ContactBase {
 
 // Interaction types
 export interface InteractionBase {
-  id: string;
+  _id: string;
   title: string;
   type: string;
   date: Date;
   contacts: ContactBase[];
   notes?: string;
+  location?: string;
+  reminders?: ReminderBase[];
+  attachments?: {
+    name: string;
+    url: string;
+    type: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }

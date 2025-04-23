@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,15 +21,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Check, ChevronDown, Filter, Plus, Search, SlidersHorizontal, Users } from "lucide-react";
-import { contacts } from "@/data/sampleData";
 import { ContactBase } from "@/types";
 import { ContactDialog } from "@/components/contacts/ContactDialog";
+import { contactService } from "@/services/ContactService.ts";
 
 const Contacts = () => {
+  const [contacts, setContacts] = useState<ContactBase[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<string>("nameAsc");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const data = await contactService.getAllContacts();
+        setContacts(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load contacts');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContacts();
+  }, []);
   
   const categories = Array.from(new Set(contacts.map(contact => contact.category)));
   const allTags = Array.from(new Set(contacts.flatMap(contact => contact.tags)));
@@ -72,13 +92,37 @@ const Contacts = () => {
   };
   
   const getInitials = (contact: ContactBase) => {
-    return `${contact.firstName[0]}${contact.lastName[0]}`;
+    const first = contact.firstName?.[0] ?? '';
+    const last = contact.lastName?.[0] ?? '';
+    return `${first}${last}`;
   };
-  
-  const handleAddContact = (data: any) => {
-    console.log("New contact:", data);
-    // In a real app, this would add the contact to the database
+
+  const handleAddContact = async (data: Omit<ContactBase, 'id'>) => {
+    try {
+      const newContact = await contactService.createContact(data);
+      setContacts(prev => [...prev, newContact]);
+    } catch (err) {
+      console.error('Failed to create contact:', err);
+      setError('Failed to create contact');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <div className="text-red-500 mb-2">{error}</div>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -235,7 +279,7 @@ const Contacts = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedContacts.map(contact => (
-            <Link to={`/contacts/${contact.id}`} key={contact.id}>
+            <Link to={`/contacts/${contact._id}`} key={contact._id}>
               <Card className="contact-card">
                 <CardContent className="p-0">
                   <div className="flex items-start gap-4 p-4">

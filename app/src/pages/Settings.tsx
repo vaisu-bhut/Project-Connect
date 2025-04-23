@@ -1,404 +1,414 @@
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Camera } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar } from "@/components/ui/avatar";
-import { Bell, Camera, LogOut, Save, User } from "lucide-react";
-import { toast } from "sonner";
+interface UserSettings {
+  profile: {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    profilePic: string;
+    address: string;
+  };
+  notificationPreferences: {
+    emailNotifications: boolean;
+    inAppNotifications: boolean;
+  };
+  dataPrivacy: {
+    dataBackup: boolean;
+    analytics: boolean;
+  };
+}
 
-const Settings = () => {
-  // State for editing
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
+export default function Settings() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<UserSettings>({
+    profile: {
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      profilePic: '',
+      address: ''
+    },
+    notificationPreferences: {
+      emailNotifications: true,
+      inAppNotifications: true
+    },
+    dataPrivacy: {
+      dataBackup: true,
+      analytics: true
+    }
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle form changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData({
-      ...formData,
-      [id]: value
-    });
+  useEffect(() => {
+    fetchUserSettings();
+  }, []);
+
+  const fetchUserSettings = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      toast.error('Failed to load settings');
+    }
   };
 
-  // Save profile
-  const saveProfile = () => {
-    // Here you would save the profile to your backend
-    console.log("Saving profile:", formData);
-    toast.success("Profile updated successfully!");
-    setIsEditingProfile(false);
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(settings.profile),
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Change password
-  const changePassword = () => {
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("Passwords do not match!");
+  const handleNotificationUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/user/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(settings.notificationPreferences),
+      });
+
+      if (!response.ok) throw new Error('Failed to update notification preferences');
+      toast.success('Notification preferences updated');
+    } catch (error) {
+      toast.error('Failed to update notification preferences');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrivacyUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/user/privacy', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(settings.dataPrivacy),
+      });
+
+      if (!response.ok) throw new Error('Failed to update privacy settings');
+      toast.success('Privacy settings updated');
+    } catch (error) {
+      toast.error('Failed to update privacy settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
       return;
     }
-    
-    if (!formData.currentPassword || !formData.newPassword) {
-      toast.error("Please fill in all password fields!");
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
       return;
     }
-    
-    // Here you would change the password on your backend
-    console.log("Changing password");
-    toast.success("Password changed successfully!");
-    setIsChangingPassword(false);
-    
-    // Reset password fields
-    setFormData({
-      ...formData,
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
+
+    try {
+      setLoading(true);
+      
+      // Convert image to base64
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+      });
+
+      // Update profile with new image
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...settings.profile,
+          profilePic: base64String
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile picture');
+
+      // Update local state
+      setSettings(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          profilePic: base64String
+        }
+      }));
+
+      toast.success('Profile picture updated successfully');
+    } catch (error) {
+      toast.error('Failed to update profile picture');
+      console.error('Error uploading image:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getUserInitials = () => {
+    const firstName = settings.profile.firstName || '';
+    const lastName = settings.profile.lastName || '';
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'U';
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight gradient-text">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
-      </div>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
-          <TabsTrigger value="profile" className="transition-all duration-200">
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="transition-all duration-200">
-            <Bell className="mr-2 h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="account" className="transition-all duration-200">
-            <User className="mr-2 h-4 w-4" />
-            Account
-          </TabsTrigger>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
         </TabsList>
         
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-4">
-          <Card className="animate-fade-in glass-card">
+        <TabsContent value="profile">
+          <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal information and how it appears across the application.
-              </CardDescription>
+              <CardTitle>Profile Details</CardTitle>
+              <CardDescription>Update your personal information</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex flex-col items-center space-y-2">
-                  <Avatar className="h-24 w-24 bg-gradient-to-br from-network-purple to-network-blue animate-pulse-slow">
-                    <div className="font-semibold text-2xl text-white">JD</div>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left Column - Profile Image */}
+                <div className="flex flex-col items-center space-y-4">
+                  <Avatar className="w-32 h-32">
+                    <AvatarImage src={settings.profile.profilePic} />
+                    <AvatarFallback className="text-2xl bg-primary/10">
+                      {getUserInitials()}
+                    </AvatarFallback>
                   </Avatar>
-                  <Button size="sm" variant="outline" className="mt-2">
-                    <Camera className="mr-2 h-4 w-4" /> Change
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {loading ? 'Uploading...' : 'Change Photo'}
                   </Button>
                 </div>
                 
-                <div className="space-y-4 flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
+                {/* Right Column - Profile Form */}
+                <div className="md:col-span-2">
+                  <form onSubmit={handleProfileUpdate} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium">First Name</label>
+                        <Input
+                          value={settings.profile.firstName}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            profile: { ...settings.profile, firstName: e.target.value }
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Last Name</label>
+                        <Input
+                          value={settings.profile.lastName}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            profile: { ...settings.profile, lastName: e.target.value }
+                          })}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Email</label>
+                      <Input value={user?.email || ''} disabled />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Phone Number</label>
                       <Input 
-                        id="firstName" 
-                        value={formData.firstName} 
-                        onChange={handleInputChange}
-                        disabled={!isEditingProfile}
-                        className={isEditingProfile ? "border-network-purple" : ""}
+                        value={settings.profile.phoneNumber}
+                        onChange={(e) => setSettings({
+                          ...settings,
+                          profile: { ...settings.profile, phoneNumber: e.target.value }
+                        })}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
+                    <div>
+                      <label className="text-sm font-medium">Address</label>
                       <Input 
-                        id="lastName" 
-                        value={formData.lastName} 
-                        onChange={handleInputChange}
-                        disabled={!isEditingProfile}
-                        className={isEditingProfile ? "border-network-purple" : ""}
+                        value={settings.profile.address}
+                        onChange={(e) => setSettings({
+                          ...settings,
+                          profile: { ...settings.profile, address: e.target.value }
+                        })}
                       />
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={formData.email} 
-                      onChange={handleInputChange}
-                      disabled={!isEditingProfile}
-                      className={isEditingProfile ? "border-network-purple" : ""}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      value={formData.phone} 
-                      onChange={handleInputChange}
-                      disabled={!isEditingProfile}
-                      className={isEditingProfile ? "border-network-purple" : ""}
-                    />
-                  </div>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </form>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end">
-              {isEditingProfile ? (
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setIsEditingProfile(false)}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={saveProfile}
-                    className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
-                  >
-                    <Save className="mr-2 h-4 w-4" /> Save Changes
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  onClick={() => setIsEditingProfile(true)}
-                  className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
-                >
-                  Edit Profile
-                </Button>
-              )}
-            </CardFooter>
           </Card>
         </TabsContent>
         
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-4">
-          <Card className="animate-fade-in glass-card">
+        <TabsContent value="notifications">
+          <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Choose how you want to be notified about activities and reminders.
-              </CardDescription>
+              <CardDescription>Manage how you receive notifications</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
+              <form onSubmit={handleNotificationUpdate} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Reminder Notifications</h3>
-                
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive reminder notifications via email</p>
+                    <div>
+                      <h3 className="font-medium">Email Notifications</h3>
+                      <p className="text-sm text-muted-foreground">Receive notifications via email</p>
                   </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                
+                    <Switch
+                      checked={settings.notificationPreferences.emailNotifications}
+                      onCheckedChange={(checked) => {
+                        setSettings({
+                          ...settings,
+                          notificationPreferences: {
+                            ...settings.notificationPreferences,
+                            emailNotifications: checked
+                          }
+                        });
+                      }}
+                    />
+                  </div>
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>In-App Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Show reminders in the application</p>
+                    <div>
+                      <h3 className="font-medium">In-App Notifications</h3>
+                      <p className="text-sm text-muted-foreground">Receive notifications within the app</p>
                   </div>
-                  <Switch defaultChecked />
+                    <Switch
+                      checked={settings.notificationPreferences.inAppNotifications}
+                      onCheckedChange={(checked) => {
+                        setSettings({
+                          ...settings,
+                          notificationPreferences: {
+                            ...settings.notificationPreferences,
+                            inAppNotifications: checked
+                          }
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Reminder Time</Label>
-                    <p className="text-sm text-muted-foreground">When to send reminder notifications</p>
-                  </div>
-                  <div className="flex w-[180px]">
-                    <Input type="number" defaultValue="30" className="rounded-r-none" />
-                    <Button variant="outline" className="rounded-l-none border-l-0">minutes before</Button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Interaction Notifications</h3>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>New Interaction Summaries</Label>
-                    <p className="text-sm text-muted-foreground">Receive a daily summary of new interactions</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Contact Birthdays</Label>
-                    <p className="text-sm text-muted-foreground">Get notified about contact birthdays</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </form>
             </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button 
-                className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
-                onClick={() => toast.success("Notification preferences saved!")}
-              >
-                <Save className="mr-2 h-4 w-4" /> Save Preferences
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
-        {/* Account Tab */}
-        <TabsContent value="account" className="space-y-4">
-          <Card className="animate-fade-in glass-card">
+        <TabsContent value="privacy">
+          <Card>
             <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-              <CardDescription>
-                Manage your account security and preferences.
-              </CardDescription>
+              <CardTitle>Data & Privacy</CardTitle>
+              <CardDescription>Manage your data and privacy settings</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
+              <form onSubmit={handlePrivacyUpdate} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Password</h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input 
-                    id="currentPassword" 
-                    type="password" 
-                    value={formData.currentPassword}
-                    onChange={handleInputChange}
-                    disabled={!isChangingPassword}
-                    className={isChangingPassword ? "border-network-purple" : ""}
-                  />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Data Backup</h3>
+                      <p className="text-sm text-muted-foreground">Enable automatic data backup</p>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input 
-                    id="newPassword" 
-                    type="password" 
-                    value={formData.newPassword}
-                    onChange={handleInputChange}
-                    disabled={!isChangingPassword}
-                    className={isChangingPassword ? "border-network-purple" : ""}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input 
-                    id="confirmPassword" 
-                    type="password" 
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    disabled={!isChangingPassword}
-                    className={isChangingPassword ? "border-network-purple" : ""}
-                  />
-                </div>
-                
-                {isChangingPassword ? (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setIsChangingPassword(false);
-                        setFormData({
-                          ...formData,
-                          currentPassword: "",
-                          newPassword: "",
-                          confirmPassword: ""
+                    <Switch
+                      checked={settings.dataPrivacy.dataBackup}
+                      onCheckedChange={(checked) => {
+                        setSettings({
+                          ...settings,
+                          dataPrivacy: {
+                            ...settings.dataPrivacy,
+                            dataBackup: checked
+                          }
                         });
                       }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={changePassword}
-                      className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
-                    >
-                      Change Password
-                    </Button>
+                    />
                   </div>
-                ) : (
-                  <Button 
-                    className="w-full md:w-auto"
-                    onClick={() => setIsChangingPassword(true)}
-                  >
-                    Change Password
-                  </Button>
-                )}
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Data & Privacy</h3>
-                
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Data Backup</Label>
-                    <p className="text-sm text-muted-foreground">Automatically backup your data</p>
+                    <div>
+                      <h3 className="font-medium">Analytics</h3>
+                      <p className="text-sm text-muted-foreground">Allow usage analytics collection</p>
                   </div>
-                  <Switch defaultChecked />
+                    <Switch
+                      checked={settings.dataPrivacy.analytics}
+                      onCheckedChange={(checked) => {
+                        setSettings({
+                          ...settings,
+                          dataPrivacy: {
+                            ...settings.dataPrivacy,
+                            analytics: checked
+                          }
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Analytics</Label>
-                    <p className="text-sm text-muted-foreground">Help improve the app by sharing anonymous usage data</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-                
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-destructive">Delete Account</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Permanently delete your account and all associated data. This action cannot be undone.
-                    </p>
-                  </div>
-                  <Button 
-                    variant="destructive"
-                    onClick={() => toast.error("This feature is disabled in the demo.")}
-                  >
-                    Delete Account
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Privacy Settings'}
                   </Button>
-                </div>
-              </div>
+              </form>
             </CardContent>
           </Card>
-          
-          <Button 
-            variant="destructive" 
-            className="flex items-center gap-2"
-            onClick={() => toast.info("Logged out successfully!")}
-          >
-            <LogOut className="h-4 w-4" /> Logout
-          </Button>
         </TabsContent>
       </Tabs>
     </div>
   );
-};
-
-export default Settings;
+}

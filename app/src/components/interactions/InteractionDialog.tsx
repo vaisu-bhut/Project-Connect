@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,9 +40,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { CalendarIcon, Clock, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { contacts } from "@/data/sampleData";
-import { ContactBase } from "@/types";
+import { ContactBase, InteractionBase } from "@/types";
 import { toast } from "sonner";
+import { contactService } from "@/services/ContactService";
 
 const interactionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -57,34 +57,76 @@ const interactionFormSchema = z.object({
 
 type InteractionFormValues = z.infer<typeof interactionFormSchema>;
 
+// After imports, define types for reminders and attachments
+type ReminderForm = { id: string; title: string; date: string; description?: string };
+type AttachmentForm = { name: string; url: string; type: string };
+
 interface InteractionDialogProps {
   trigger: React.ReactNode;
   defaultContacts?: ContactBase[];
-  onSave?: (data: InteractionFormValues & { contacts: ContactBase[] }) => void;
+  interaction?: InteractionBase;
+  onSave?: (data: InteractionFormValues & { contacts: ContactBase[]; reminders: ReminderForm[]; attachments: AttachmentForm[] }) => void;
 }
 
-export function InteractionDialog({ trigger, defaultContacts = [], onSave }: InteractionDialogProps) {
+export function InteractionDialog({ trigger, defaultContacts = [], interaction, onSave }: InteractionDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<ContactBase[]>(defaultContacts);
   const [contactSearch, setContactSearch] = useState("");
-  const [reminders, setReminders] = useState<Array<{ title: string; date: string; description?: string }>>([]);
-  const [attachments, setAttachments] = useState<Array<{ name: string; url: string; type: string }>>([]);
+  const [allContacts, setAllContacts] = useState<ContactBase[]>([]);
+  const [reminders, setReminders] = useState<Array<{ id: string; title: string; date: string; description?: string }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; url: string; type: string }>>([]);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const contacts = await contactService.getAllContacts();
+        setAllContacts(contacts);
+      } catch (error) {
+        console.error('Failed to fetch contacts:', error);
+        toast.error('Failed to load contacts');
+      }
+    };
+
+    fetchContacts();
+  }, []);
+
+  useEffect(() => {
+    if (interaction) {
+      setSelectedContacts(interaction.contacts || []);
+      setReminders(
+        (interaction.reminders || []).map(r => ({
+          id: r.id,
+          title: r.title,
+          date: r.date instanceof Date ? r.date.toISOString() : String(r.date),
+          description: r.description
+        }))
+      );
+      setAttachments(
+        (interaction.attachments || []).map((a, idx) => ({
+          id: a.url || `att-${idx}`,
+          name: a.name,
+          url: a.url,
+          type: a.type
+        }))
+      );
+    }
+  }, [interaction]);
 
   const form = useForm<InteractionFormValues>({
     resolver: zodResolver(interactionFormSchema),
     defaultValues: {
-      title: "",
-      type: "",
-      date: new Date(),
-      time: "",
-      location: "",
-      notes: "",
+      title: interaction?.title || "",
+      type: interaction?.type || "",
+      date: interaction?.date ? new Date(interaction.date) : new Date(),
+      time: format(interaction?.date || new Date(), 'HH:mm'),
+      location: interaction?.location || "",
+      notes: interaction?.notes || "",
     },
   });
 
-  const filteredContacts = contacts.filter(
+  const filteredContacts = allContacts.filter(
     contact => 
-      !selectedContacts.some(sc => sc.id === contact.id) && 
+      !selectedContacts.some(sc => sc._id === contact._id) && 
       (`${contact.firstName} ${contact.lastName}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
       contact.email?.toLowerCase().includes(contactSearch.toLowerCase()))
   );
@@ -95,7 +137,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
   };
 
   const handleRemoveContact = (contactId: string) => {
-    setSelectedContacts(selectedContacts.filter(c => c.id !== contactId));
+    setSelectedContacts(selectedContacts.filter(c => c._id !== contactId));
   };
 
   const onSubmit = (data: InteractionFormValues) => {
@@ -104,9 +146,20 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
       return;
     }
 
-    const interactionData = {
+    const interactionData: InteractionFormValues & { contacts: ContactBase[]; reminders: ReminderForm[]; attachments: AttachmentForm[] } = {
       ...data,
       contacts: selectedContacts,
+      reminders: reminders.map(r => ({
+        id: r.id,
+        title: r.title,
+        date: r.date,
+        description: r.description
+      })),
+      attachments: attachments.map(a => ({
+        name: a.name,
+        url: a.url,
+        type: a.type
+      }))
     };
 
     if (onSave) {
@@ -125,8 +178,10 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
 
   const handleAddReminder = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const formData = new FormData(e.currentTarget);
     const reminder = {
+      id: crypto.randomUUID(),
       title: formData.get('title') as string,
       date: formData.get('date') as string,
       description: formData.get('description') as string
@@ -138,8 +193,10 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
 
   const handleAddAttachment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const formData = new FormData(e.currentTarget);
     const attachment = {
+      id: crypto.randomUUID(),
       name: formData.get('name') as string,
       url: formData.get('url') as string,
       type: formData.get('type') as string
@@ -154,9 +211,13 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto glass-card animate-scale-in">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Log Interaction</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {interaction ? "Edit Interaction" : "Log Interaction"}
+          </DialogTitle>
           <DialogDescription>
-            Record a new interaction with your contacts. Fill in the details below.
+            {interaction 
+              ? "Update the details of your interaction below."
+              : "Record a new interaction with your contacts. Fill in the details below."}
           </DialogDescription>
         </DialogHeader>
         
@@ -287,18 +348,18 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
               <div className="flex flex-wrap gap-2 mb-2">
                 {selectedContacts.map(contact => (
                   <div 
-                    key={contact.id} 
+                    key={contact._id} 
                     className="flex items-center gap-2 bg-muted px-2 py-1 rounded-full animate-fade-in"
                   >
                     <Avatar className="h-6 w-6 bg-network-purple">
                       <div className="font-semibold text-xs text-white">
-                        {contact.firstName[0]}{contact.lastName[0]}
+                        {contact.firstName?.[0] ?? ''} {contact.lastName?.[0] ?? ''}
                       </div>
-                    </Avatar>
+                    </Avatar> 
                     <span className="text-sm">{contact.firstName} {contact.lastName}</span>
                     <button 
                       type="button"
-                      onClick={() => handleRemoveContact(contact.id)}
+                      onClick={() => handleRemoveContact(contact._id)}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3 w-3" />
@@ -320,13 +381,13 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     {filteredContacts.length > 0 ? (
                       filteredContacts.map(contact => (
                         <div 
-                          key={contact.id}
+                          key={contact._id}
                           className="flex items-center gap-2 p-2 hover:bg-muted cursor-pointer"
                           onClick={() => handleAddContact(contact)}
                         >
                           <Avatar className="h-8 w-8 bg-network-purple">
                             <div className="font-semibold text-xs text-white">
-                              {contact.firstName[0]}{contact.lastName[0]}
+                              {contact.firstName?.[0] ?? ''} {contact.lastName?.[0] ?? ''}
                             </div>
                           </Avatar>
                           <div>
@@ -366,8 +427,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
             <div className="space-y-4">
               <h3 className="font-semibold">Reminders</h3>
               <div className="space-y-2">
-                {reminders.map((reminder, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                {reminders.map((reminder) => (
+                  <div key={reminder.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{reminder.title}</p>
                       <p className="text-sm text-muted-foreground">{reminder.date}</p>
@@ -375,7 +436,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setReminders(reminders.filter((_, i) => i !== index))}
+                      onClick={() => setReminders(reminders.filter(r => r.id !== reminder.id))}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -419,8 +480,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
             <div className="space-y-4">
               <h3 className="font-semibold">Attachments</h3>
               <div className="space-y-2">
-                {attachments.map((attachment, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                {attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{attachment.name}</p>
                       <p className="text-sm text-muted-foreground">{attachment.type}</p>
@@ -428,7 +489,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                      onClick={() => setAttachments(attachments.filter(a => a.id !== attachment.id))}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -486,7 +547,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], onSave }: Int
                 type="submit"
                 className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white"
               >
-                Log Interaction
+                {interaction ? "Update Interaction" : "Log Interaction"}
               </Button>
             </DialogFooter>
           </form>
