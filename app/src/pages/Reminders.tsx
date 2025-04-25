@@ -1,16 +1,15 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { 
   Bell, 
-  Plus, 
   Search, 
   Calendar,
   SlidersHorizontal,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,83 +20,55 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card } from "@/components/ui/card";
-import { interactions } from "@/data/sampleData";
 import { ReminderItem } from "@/components/reminders/ReminderItem";
+import { AddReminderDialog } from "@/components/reminders/AddReminderDialog";
 import { toast } from "sonner";
-
-// Sample reminders data
-const initialReminders = [
-  {
-    id: "1",
-    title: "Follow up with client about project proposal",
-    date: new Date(2025, 3, 25, 10, 0),
-    isCompleted: false,
-    interactionId: "1",
-    createdAt: new Date(2025, 3, 20),
-    updatedAt: new Date(2025, 3, 20),
-    notes: "Send them the updated version with the new pricing structure"
-  },
-  {
-    id: "2",
-    title: "Call Jane about marketing strategy",
-    date: new Date(2025, 3, 22, 14, 30),
-    isCompleted: false,
-    interactionId: "2",
-    createdAt: new Date(2025, 3, 19),
-    updatedAt: new Date(2025, 3, 19),
-    notes: "Discuss the Q2 marketing plan and budget allocation"
-  },
-  {
-    id: "3",
-    title: "Send birthday wishes to Michael",
-    date: new Date(2025, 3, 18, 9, 0),
-    isCompleted: true,
-    createdAt: new Date(2025, 3, 15),
-    updatedAt: new Date(2025, 3, 18),
-  },
-  {
-    id: "4",
-    title: "Schedule quarterly review meeting",
-    date: new Date(2025, 3, 15, 11, 0),
-    isCompleted: true,
-    createdAt: new Date(2025, 3, 10),
-    updatedAt: new Date(2025, 3, 15),
-    notes: "Prepare slides and performance metrics for the team"
-  },
-  {
-    id: "5",
-    title: "Send thank you email to conference participants",
-    date: new Date(2025, 3, 10, 16, 0),
-    isCompleted: true,
-    interactionId: "3",
-    createdAt: new Date(2025, 3, 5),
-    updatedAt: new Date(2025, 3, 10),
-  }
-];
+import { reminderService } from "@/services/ReminderService";
+import { ReminderBase } from "@/types";
 
 const Reminders = () => {
-  const [reminders, setReminders] = useState(initialReminders);
+  const [reminders, setReminders] = useState<ReminderBase[]>([]);
   const [activeTab, setActiveTab] = useState("current");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("dateAsc");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    fetchReminders();
+  }, []);
+
+  const fetchReminders = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await reminderService.getReminders();
+      setReminders(data);
+    } catch (err) {
+      setError("Failed to fetch reminders. Please try again later.");
+      toast.error("Failed to fetch reminders");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filter reminders based on completion status
-  const currentReminders = reminders.filter(reminder => !reminder.isCompleted);
-  const pastReminders = reminders.filter(reminder => reminder.isCompleted);
+  const currentReminders = reminders.filter(reminder => reminder.status === 'incomplete');
+  const pastReminders = reminders.filter(reminder => reminder.status === 'completed');
   
   // Filter based on search query
   const filteredCurrentReminders = currentReminders.filter(reminder => 
     reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    reminder.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+    reminder.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   const filteredPastReminders = pastReminders.filter(reminder => 
     reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    reminder.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+    reminder.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   // Sort reminders based on sort option
-  const sortReminders = (reminders: typeof initialReminders) => {
+  const sortReminders = (reminders: ReminderBase[]) => {
     return [...reminders].sort((a, b) => {
       switch (sortBy) {
         case "dateAsc":
@@ -117,25 +88,57 @@ const Reminders = () => {
   const sortedCurrentReminders = sortReminders(filteredCurrentReminders);
   const sortedPastReminders = sortReminders(filteredPastReminders);
   
-  // Find interaction details for a reminder
-  const getInteractionForReminder = (interactionId?: string) => {
-    if (!interactionId) return undefined;
-    return interactions.find(interaction => interaction.id === interactionId);
-  };
-  
   // Handle marking a reminder as read/completed
-  const handleMarkAsRead = (id: string) => {
-    setReminders(reminders.map(reminder => 
-      reminder.id === id 
-        ? { ...reminder, isCompleted: true, updatedAt: new Date() } 
-        : reminder
-    ));
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const reminder = reminders.find(r => r._id === id);
+      if (!reminder) return;
+
+      const newStatus = reminder.status === 'completed' ? 'incomplete' : 'completed';
+
+      await reminderService.updateReminder(id, {
+        ...reminder,
+        status: newStatus,
+        updatedAt: new Date()
+      });
+
+      setReminders(reminders.map(reminder => 
+        reminder._id === id 
+          ? { ...reminder, status: newStatus, updatedAt: new Date() } 
+          : reminder
+      ));
+      
+      toast.success(`Reminder marked as ${newStatus}`);
+    } catch (err) {
+      toast.error("Failed to update reminder");
+    }
   };
-  
-  // Add new reminder
-  const handleAddReminder = () => {
-    toast.info("Add reminder feature will be implemented soon!");
-  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-network-purple" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+        <Card className="p-6 text-center">
+          <h3 className="text-lg font-semibold text-red-500">Error</h3>
+          <p className="text-muted-foreground mt-1">{error}</p>
+          <Button 
+            onClick={fetchReminders}
+            className="mt-4"
+            variant="outline"
+          >
+            Try Again
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -144,12 +147,7 @@ const Reminders = () => {
           <h1 className="text-3xl font-bold tracking-tight gradient-text">Reminders</h1>
           <p className="text-muted-foreground">Stay on top of your follow-ups and important dates.</p>
         </div>
-        <Button 
-          onClick={handleAddReminder}
-          className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white transition-all duration-300 shadow-md hover:shadow-lg"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Reminder
-        </Button>
+        <AddReminderDialog onReminderAdded={fetchReminders} />
       </div>
       
       <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -209,20 +207,14 @@ const Reminders = () => {
               <p className="text-muted-foreground mt-1 mb-4">
                 You're all caught up! Add a new reminder to stay on track.
               </p>
-              <Button 
-                onClick={handleAddReminder}
-                className="bg-gradient-to-r from-network-purple to-network-blue hover:from-network-purple-dark hover:to-network-blue-dark text-white transition-all duration-300"
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add Reminder
-              </Button>
+              <AddReminderDialog onReminderAdded={fetchReminders} />
             </Card>
           ) : (
             <div className="space-y-4">
               {sortedCurrentReminders.map(reminder => (
                 <ReminderItem
-                  key={reminder.id}
+                  key={reminder._id}
                   reminder={reminder}
-                  interaction={getInteractionForReminder(reminder.interactionId)}
                   onMarkAsRead={handleMarkAsRead}
                 />
               ))}
@@ -243,9 +235,8 @@ const Reminders = () => {
             <div className="space-y-4">
               {sortedPastReminders.map(reminder => (
                 <ReminderItem
-                  key={reminder.id}
+                  key={reminder._id}
                   reminder={reminder}
-                  interaction={getInteractionForReminder(reminder.interactionId)}
                   onMarkAsRead={handleMarkAsRead}
                 />
               ))}

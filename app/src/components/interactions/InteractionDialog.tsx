@@ -102,7 +102,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
           const fetchedReminders = await reminderService.getReminders(interaction._id);
           setReminders(fetchedReminders.map(r => ({
             _id: r._id,
-            title: r.title,
+          title: r.title,
             date: format(new Date(r.date), "yyyy-MM-dd'T'HH:mm"),
             description: r.description,
             status: r.status
@@ -171,7 +171,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     };
 
     try {
-      if (onSave) {
+    if (onSave) {
         await onSave(interactionData);
         
         // Handle reminders
@@ -214,10 +214,10 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
       }
 
       toast.success("Interaction updated successfully!");
-      setOpen(false);
-      form.reset();
-      if (defaultContacts.length === 0) {
-        setSelectedContacts([]);
+    setOpen(false);
+    form.reset();
+    if (defaultContacts.length === 0) {
+      setSelectedContacts([]);
       }
       // Reload the page
       window.location.reload();
@@ -373,12 +373,12 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="time"
-                      />
-                    </FormControl>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="time"
+                        />
+                      </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
