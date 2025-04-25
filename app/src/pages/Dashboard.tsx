@@ -1,18 +1,48 @@
-
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { contacts, interactions, reminders } from "@/data/sampleData";
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { Users, MessageSquare, Bell } from "lucide-react";
+import { contactService } from "@/services/ContactService";
+import { interactionService } from "@/services/InteractionService";
+import { reminderService } from "@/services/ReminderService";
+import { ContactBase, InteractionBase, ReminderBase } from "@/types";
 
 const Dashboard = () => {
+  const [contacts, setContacts] = useState<ContactBase[]>([]);
+  const [interactions, setInteractions] = useState<InteractionBase[]>([]);
+  const [reminders, setReminders] = useState<ReminderBase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [contactsData, interactionsData, remindersData] = await Promise.all([
+          contactService.getAllContacts(),
+          interactionService.getAllInteractions(),
+          reminderService.getReminders()
+        ]);
+        
+        setContacts(contactsData);
+        setInteractions(interactionsData);
+        setReminders(remindersData);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Calculate metrics
   const totalContacts = contacts.length;
   const totalInteractions = interactions.length;
   const totalReminders = reminders.length;
-  const pendingReminders = reminders.filter(r => !r.isCompleted).length;
+  const pendingReminders = reminders.filter(r => r.status === 'incomplete').length;
   
   // Generate data for contact categories chart
   const categoryData = contacts.reduce((acc, contact) => {
@@ -54,6 +84,10 @@ const Dashboard = () => {
   
   // Color configurations
   const COLORS = ['#6C5DD3', '#4C6FFF', '#01CDCE', '#8A7FE8', '#7991FF'];
+
+  if (isLoading) {
+    return <div>Loading dashboard data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -172,7 +206,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {interactions.slice(0, 3).map(interaction => (
-                <div key={interaction.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                <div key={interaction._id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
                   <div className="bg-primary/10 p-2 rounded-full">
                     <MessageSquare className="h-5 w-5 text-primary" />
                   </div>
@@ -199,8 +233,8 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {reminders.filter(r => !r.isCompleted).slice(0, 3).map(reminder => (
-                <div key={reminder.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+              {reminders.filter(r => r.status === 'incomplete').slice(0, 3).map(reminder => (
+                <div key={reminder._id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
                   <div className="bg-network-teal/10 p-2 rounded-full">
                     <Bell className="h-5 w-5 text-network-teal" />
                   </div>
@@ -208,10 +242,10 @@ const Dashboard = () => {
                     <p className="text-sm font-medium">{reminder.title}</p>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <span>{new Date(reminder.date).toLocaleDateString()}</span>
-                      {reminder.interaction && (
+                      {reminder.interactionId && (
                         <>
                           <span className="mx-2">•</span>
-                          <span>Related to: {reminder.interaction.title}</span>
+                          <span>Related to interaction</span>
                         </>
                       )}
                     </div>
