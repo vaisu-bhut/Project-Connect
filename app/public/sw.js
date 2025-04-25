@@ -16,6 +16,9 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.url.startsWith('chrome-extension://') || event.request.url.startsWith('moz-extension://')) {
+    return;
+  }
   event.respondWith(
     caches.match(event.request)
       .then(response => {
