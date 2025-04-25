@@ -29,7 +29,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:8080',  'https://conlieve.vasubhut.com'],
+  origin: ['http://localhost:8080',  'https://conlieve.vasubhut.com', 'https://project-connect-two.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
