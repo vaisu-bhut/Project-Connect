@@ -66,7 +66,7 @@ interface InteractionDialogProps {
   trigger: React.ReactNode;
   defaultContacts?: ContactBase[];
   interaction?: InteractionBase;
-  onSave?: (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave?: (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => Promise<InteractionBase>;
 }
 
 export function InteractionDialog({ trigger, defaultContacts = [], interaction, onSave }: InteractionDialogProps) {
@@ -171,8 +171,9 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     };
 
     try {
-    if (onSave) {
-        await onSave(interactionData);
+      if (onSave) {
+        // First save the interaction and get its response
+        const savedInteraction = await onSave(interactionData);
         
         // Handle reminders
         if (interaction?._id) {
@@ -210,10 +211,22 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
               });
             }
           }
+        } else if (savedInteraction?._id) {
+          // Create reminders for new interaction using the saved interaction's ID
+          for (const reminder of reminders) {
+            await reminderService.createReminder({
+              title: reminder.title,
+              description: reminder.description,
+              date: new Date(reminder.date),
+              time: format(new Date(reminder.date), 'HH:mm'),
+              interactionId: savedInteraction._id,
+              status: 'incomplete'
+            });
+          }
         }
       }
 
-      toast.success("Interaction updated successfully!");
+      toast.success(interaction ? "Interaction updated successfully!" : "Interaction created successfully!");
     setOpen(false);
     form.reset();
     if (defaultContacts.length === 0) {

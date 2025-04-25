@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Eye, Calendar } from "lucide-react";
+import { Clock, Eye, Calendar, Trash2 } from "lucide-react";
 import { ReminderBase, InteractionBase } from "@/types";
 import { toast } from "sonner";
 
@@ -11,9 +11,10 @@ interface ReminderItemProps {
   reminder: ReminderBase;
   interaction?: InteractionBase;
   onMarkAsRead: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function ReminderItem({ reminder, interaction, onMarkAsRead }: ReminderItemProps) {
+export function ReminderItem({ reminder, interaction, onMarkAsRead, onDelete }: ReminderItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   
   const handleMarkAsRead = () => {
@@ -87,7 +88,17 @@ export function ReminderItem({ reminder, interaction, onMarkAsRead }: ReminderIt
         )}
       </div>
       
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-2 gap-2">
+        {isCompleted && onDelete && (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="h-7"
+            onClick={() => onDelete(reminder._id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
         <Button 
           variant="outline" 
           size="sm" 

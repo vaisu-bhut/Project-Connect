@@ -74,13 +74,13 @@ export function Sidebar() {
         {expanded ? (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md bg-gradient-to-br from-network-purple to-network-blue flex items-center justify-center text-white font-bold animate-pulse-slow">
-              NM
+              CO
             </div>
-            <span className="font-bold text-lg text-network-purple">NetworX</span>
+            <span className="font-bold text-lg text-network-purple">ConLieve</span>
           </div>
         ) : (
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-network-purple to-network-blue mx-auto flex items-center justify-center text-white font-bold animate-pulse-slow">
-            NM
+            CO
           </div>
         )}
       </div>
@@ -98,7 +98,7 @@ export function Sidebar() {
         {expanded && (
           <div className="ml-3 overflow-hidden">
             <p className="font-medium truncate">{user?.name || "Loading..."}</p>
-            <p className="text-xs text-muted-foreground truncate">@{user?.id || "user"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || "user@example.com"}</p>
           </div>
         )}
       </div>

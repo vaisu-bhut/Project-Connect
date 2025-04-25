@@ -122,7 +122,6 @@ const ContactDetail = () => {
       if (id) {
         const newInteraction = await interactionService.createInteraction({
           ...data,
-          contacts: [contact!, ...data.contacts],
           date: data.date,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -130,6 +129,7 @@ const ContactDetail = () => {
         
         setInteractions(prev => [newInteraction, ...prev]);
         toast.success("Interaction logged successfully!");
+        return newInteraction;
       }
     } catch (error) {
       console.error('Failed to log interaction:', error);
@@ -137,9 +137,17 @@ const ContactDetail = () => {
     }
   };
   
-  const handleDeleteContact = () => {
-    toast.success("Contact deleted successfully!");
-    navigate("/contacts");
+  const handleDeleteContact = async () => {
+    try {
+      if (id) {
+        await contactService.deleteContact(id);
+        toast.success("Contact deleted successfully!");
+        navigate("/contacts");
+      }
+    } catch (error) {
+      console.error('Failed to delete contact:', error);
+      toast.error('Failed to delete contact');
+    }
   };
   
   const handleAddCustomField = () => {

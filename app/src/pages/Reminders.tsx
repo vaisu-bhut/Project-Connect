@@ -114,6 +114,16 @@ const Reminders = () => {
     }
   };
 
+  const handleDeleteReminder = async (id: string) => {
+    try {
+      await reminderService.deleteReminder(id);
+      setReminders(reminders.filter(reminder => reminder._id !== id));
+      toast.success("Reminder deleted successfully");
+    } catch (err) {
+      toast.error("Failed to delete reminder");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -238,6 +248,7 @@ const Reminders = () => {
                   key={reminder._id}
                   reminder={reminder}
                   onMarkAsRead={handleMarkAsRead}
+                  onDelete={handleDeleteReminder}
                 />
               ))}
             </div>
