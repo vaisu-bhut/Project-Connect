@@ -32,8 +32,10 @@ const authController = {
       // Set cookie
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        secure: true,
+        sameSite: 'None',
+        domain: 'vasubhut.com',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 24 hours
       });
 
       res.status(201).json({
@@ -75,8 +77,10 @@ const authController = {
       // Set cookie
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        secure: true,
+        sameSite: 'None',
+        domain: 'vasubhut.com',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 24 hours
       });
 
       res.json({
