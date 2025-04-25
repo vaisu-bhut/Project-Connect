@@ -26,7 +26,7 @@ const authController = {
       const token = jwt.sign(
         { userId: user._id },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
+        { expiresIn: '7d' }
       );
 
       // Set cookie
@@ -34,7 +34,7 @@ const authController = {
         httpOnly: true,
         secure: true,
         sameSite: 'None',
-        domain: 'vasubhut.com',
+        domain: '.vasubhut.com',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 24 hours
       });
 
@@ -71,7 +71,7 @@ const authController = {
       const token = jwt.sign(
         { userId: user._id },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
+        { expiresIn: '7d' }
       );
 
       // Set cookie
@@ -79,7 +79,7 @@ const authController = {
         httpOnly: true,
         secure: true,
         sameSite: 'None',
-        domain: 'vasubhut.com',
+        domain: '.vasubhut.com',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 24 hours
       });
 
