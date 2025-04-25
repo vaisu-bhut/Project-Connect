@@ -5,6 +5,7 @@ const reminderSchema = new mongoose.Schema({
   description: { type: String },
   date: { type: Date, required: true },
   time: { type: String, required: true },
+  status: { type: String, required: true , default: 'incomplete'},
   interactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Interaction' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });

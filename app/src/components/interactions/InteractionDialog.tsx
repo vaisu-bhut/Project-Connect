@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils";
 import { ContactBase, InteractionBase } from "@/types";
 import { toast } from "sonner";
 import { contactService } from "@/services/ContactService";
+import { reminderService } from "@/services/ReminderService";
 
 const interactionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -58,14 +59,14 @@ const interactionFormSchema = z.object({
 type InteractionFormValues = z.infer<typeof interactionFormSchema>;
 
 // After imports, define types for reminders and attachments
-type ReminderForm = { id: string; title: string; date: string; description?: string };
+type ReminderForm = { _id: string; title: string; date: string; description?: string; status: 'completed' | 'incomplete' };
 type AttachmentForm = { name: string; url: string; type: string };
 
 interface InteractionDialogProps {
   trigger: React.ReactNode;
   defaultContacts?: ContactBase[];
   interaction?: InteractionBase;
-  onSave?: (data: InteractionFormValues & { contacts: ContactBase[]; reminders: ReminderForm[]; attachments: AttachmentForm[] }) => void;
+  onSave?: (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export function InteractionDialog({ trigger, defaultContacts = [], interaction, onSave }: InteractionDialogProps) {
@@ -73,8 +74,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
   const [selectedContacts, setSelectedContacts] = useState<ContactBase[]>(defaultContacts);
   const [contactSearch, setContactSearch] = useState("");
   const [allContacts, setAllContacts] = useState<ContactBase[]>([]);
-  const [reminders, setReminders] = useState<Array<{ id: string; title: string; date: string; description?: string }>>([]);
-  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; url: string; type: string }>>([]);
+  const [reminders, setReminders] = useState<ReminderForm[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentForm[]>([]);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -93,22 +94,26 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
   useEffect(() => {
     if (interaction) {
       setSelectedContacts(interaction.contacts || []);
-      setReminders(
-        (interaction.reminders || []).map(r => ({
-          id: r.id,
-          title: r.title,
-          date: r.date instanceof Date ? r.date.toISOString() : String(r.date),
-          description: r.description
-        }))
-      );
-      setAttachments(
-        (interaction.attachments || []).map((a, idx) => ({
-          id: a.url || `att-${idx}`,
-          name: a.name,
-          url: a.url,
-          type: a.type
-        }))
-      );
+      setAttachments(interaction.attachments || []);
+      
+      // Fetch reminders for this interaction
+      const fetchReminders = async () => {
+        try {
+          const fetchedReminders = await reminderService.getReminders(interaction._id);
+          setReminders(fetchedReminders.map(r => ({
+            _id: r._id,
+            title: r.title,
+            date: format(new Date(r.date), "yyyy-MM-dd'T'HH:mm"),
+            description: r.description,
+            status: r.status
+          })));
+        } catch (error) {
+          console.error('Failed to fetch reminders:', error);
+          toast.error('Failed to load reminders');
+        }
+      };
+      
+      fetchReminders();
     }
   }, [interaction]);
 
@@ -140,21 +145,24 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     setSelectedContacts(selectedContacts.filter(c => c._id !== contactId));
   };
 
-  const onSubmit = (data: InteractionFormValues) => {
+  const onSubmit = async (data: InteractionFormValues) => {
     if (selectedContacts.length === 0) {
       toast.error("Please add at least one contact");
       return;
     }
 
-    const interactionData: InteractionFormValues & { contacts: ContactBase[]; reminders: ReminderForm[]; attachments: AttachmentForm[] } = {
-      ...data,
+    // Combine date and time
+    const date = new Date(data.date);
+    const [hours, minutes] = data.time.split(':').map(Number);
+    date.setHours(hours, minutes);
+
+    const interactionData: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'> = {
+      title: data.title,
+      type: data.type,
+      date: date,
       contacts: selectedContacts,
-      reminders: reminders.map(r => ({
-        id: r.id,
-        title: r.title,
-        date: r.date,
-        description: r.description
-      })),
+      notes: data.notes || '',
+      location: data.location || '',
       attachments: attachments.map(a => ({
         name: a.name,
         url: a.url,
@@ -162,17 +170,60 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
       }))
     };
 
-    if (onSave) {
-      onSave(interactionData);
-    }
+    try {
+      if (onSave) {
+        await onSave(interactionData);
+        
+        // Handle reminders
+        if (interaction?._id) {
+          // Get existing reminders from the database
+          const existingReminders = await reminderService.getReminders(interaction._id);
+          const existingReminderIds = existingReminders.map(r => r._id);
+          
+          // Delete reminders that were removed
+          for (const existingReminder of existingReminders) {
+            if (!reminders.some(r => r._id === existingReminder._id)) {
+              await reminderService.deleteReminder(existingReminder._id);
+            }
+          }
+          
+          // Create or update reminders
+          for (const reminder of reminders) {
+            if (existingReminderIds.includes(reminder._id)) {
+              // Update existing reminder
+              await reminderService.updateReminder(reminder._id, {
+                title: reminder.title,
+                description: reminder.description,
+                date: new Date(reminder.date),
+                time: format(new Date(reminder.date), 'HH:mm'),
+                status: reminder.status
+              });
+            } else {
+              // Create new reminder
+              await reminderService.createReminder({
+                title: reminder.title,
+                description: reminder.description,
+                date: new Date(reminder.date),
+                time: format(new Date(reminder.date), 'HH:mm'),
+                interactionId: interaction._id,
+                status: reminder.status
+              });
+            }
+          }
+        }
+      }
 
-    toast.success("Interaction logged successfully!");
-
-    setOpen(false);
-
-    form.reset();
-    if (defaultContacts.length === 0) {
-      setSelectedContacts([]);
+      toast.success("Interaction updated successfully!");
+      setOpen(false);
+      form.reset();
+      if (defaultContacts.length === 0) {
+        setSelectedContacts([]);
+      }
+      // Reload the page
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to save interaction:', error);
+      toast.error('Failed to save interaction');
     }
   };
 
@@ -180,11 +231,12 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     e.preventDefault();
     e.stopPropagation();
     const formData = new FormData(e.currentTarget);
-    const reminder = {
-      id: crypto.randomUUID(),
+    const reminder: ReminderForm = {
+      _id: crypto.randomUUID(),
       title: formData.get('title') as string,
       date: formData.get('date') as string,
-      description: formData.get('description') as string
+      description: formData.get('description') as string,
+      status: 'incomplete' as 'completed' | 'incomplete'
     };
     setReminders([...reminders, reminder]);
     toast.success("Reminder added successfully!");
@@ -195,8 +247,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     e.preventDefault();
     e.stopPropagation();
     const formData = new FormData(e.currentTarget);
-    const attachment = {
-      id: crypto.randomUUID(),
+    const attachment: AttachmentForm = {
       name: formData.get('name') as string,
       url: formData.get('url') as string,
       type: formData.get('type') as string
@@ -204,6 +255,18 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
     setAttachments([...attachments, attachment]);
     toast.success("Attachment added successfully!");
     (e.target as HTMLFormElement).reset();
+  };
+
+  const handleRemoveReminder = (e: React.MouseEvent<HTMLButtonElement>, reminderId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReminders(reminders.filter(r => r._id !== reminderId));
+  };
+
+  const handleRemoveAttachment = (e: React.MouseEvent<HTMLButtonElement>, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAttachments(attachments.filter((_, i) => i !== index));
   };
 
   return (
@@ -310,15 +373,12 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="time"
-                        />
-                      </FormControl>
-                      <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    </div>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="time"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -428,15 +488,18 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
               <h3 className="font-semibold">Reminders</h3>
               <div className="space-y-2">
                 {reminders.map((reminder) => (
-                  <div key={reminder.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                  <div key={reminder._id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{reminder.title}</p>
                       <p className="text-sm text-muted-foreground">{reminder.date}</p>
+                      {reminder.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{reminder.description}</p>
+                      )}
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setReminders(reminders.filter(r => r.id !== reminder.id))}
+                      onClick={(e) => handleRemoveReminder(e, reminder._id)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -480,8 +543,8 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
             <div className="space-y-4">
               <h3 className="font-semibold">Attachments</h3>
               <div className="space-y-2">
-                {attachments.map((attachment) => (
-                  <div key={attachment.id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                {attachments.map((attachment, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <div>
                       <p className="font-medium">{attachment.name}</p>
                       <p className="text-sm text-muted-foreground">{attachment.type}</p>
@@ -489,7 +552,7 @@ export function InteractionDialog({ trigger, defaultContacts = [], interaction, 
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setAttachments(attachments.filter(a => a.id !== attachment.id))}
+                      onClick={(e) => handleRemoveAttachment(e, index)}
                     >
                       <X className="h-4 w-4" />
                     </Button>

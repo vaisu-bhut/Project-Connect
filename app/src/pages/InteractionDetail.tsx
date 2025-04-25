@@ -130,13 +130,14 @@ const InteractionDetail = () => {
     }
     try {
       if (id) {
-        const dt = new Date(dateStr);
+        const date = new Date(dateStr);
         const newRem = await reminderService.createReminder({
           title,
           description,
-          date: dt,
-          time: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          interactionId: id
+          date,
+          time: format(date, 'HH:mm'),
+          interactionId: id,
+          status: 'incomplete'
         });
         setRemindersList(prev => [...prev, newRem]);
         toast.success('Reminder added successfully!');
@@ -160,6 +161,30 @@ const InteractionDetail = () => {
     }
   };
 
+  // Handler for updating interaction
+  const handleUpdateInteraction = async (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (id) {
+        const updatedInteraction = await interactionService.updateInteraction(id, {
+          ...data,
+          title: data.title || '',
+          type: data.type || '',
+          date: data.date || new Date(),
+          contacts: data.contacts || [],
+          notes: data.notes || '',
+          location: data.location || '',
+          reminders: data.reminders || [],
+          attachments: data.attachments || []
+        });
+        setInteraction(updatedInteraction);
+        toast.success("Interaction updated successfully!");
+      }
+    } catch (error) {
+      console.error('Failed to update interaction:', error);
+      toast.error('Failed to update interaction');
+    }
+  };
+
   // Handler for adding attachment
   const handleAddAttachment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -173,6 +198,7 @@ const InteractionDetail = () => {
     try {
       if (id) {
         const updatedInteraction = await interactionService.updateInteraction(id, {
+          ...interaction,
           attachments: [...(interaction?.attachments || []), attachmentData]
         });
         setInteraction(updatedInteraction);
@@ -182,6 +208,27 @@ const InteractionDetail = () => {
     } catch (error) {
       console.error('Failed to add attachment:', error);
       toast.error('Failed to add attachment');
+    }
+  };
+
+  const handleUpdateReminderStatus = async (reminderId: string) => {
+    try {
+      const reminder = remindersList.find(r => r._id === reminderId);
+      if (!reminder) return;
+
+      const updatedStatus = reminder.status === 'completed' ? 'incomplete' : 'completed';
+      await reminderService.updateReminder(reminderId, { status: updatedStatus });
+      
+      setRemindersList(prev => prev.map(r => 
+        r._id === reminderId 
+          ? { ...r, status: updatedStatus }
+          : r
+      ));
+      
+      toast.success(`Reminder marked as ${updatedStatus}`);
+    } catch (error) {
+      console.error('Failed to update reminder status:', error);
+      toast.error('Failed to update reminder status');
     }
   };
 
@@ -367,33 +414,27 @@ const InteractionDetail = () => {
                   </Dialog>
                 </div>
                 
-                {remindersList.length > 0 ? (
-                  <div className="space-y-3">
-                    {remindersList.map(reminder => (
-                      <div key={reminder._id} className="p-4 rounded-lg border-l-4 border-l-network-purple bg-network-purple/5">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">{reminder.title}</h4>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteReminder(reminder._id)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center mt-2 text-sm text-muted-foreground">
-                          <Calendar className="h-3.5 w-3.5 mr-1" />
-                          <span>{format(new Date(reminder.date), 'PPP')}</span>
-                          <Clock className="h-3.5 w-3.5 ml-3 mr-1" />
-                          <span>{reminder.time}</span>
-                        </div>
-                        {reminder.description && <p className="mt-2 text-sm text-muted-foreground">{reminder.description}</p>}
+                <div className="space-y-2">
+                  {remindersList.map((reminder) => (
+                    <div key={reminder._id} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">{reminder.title}</p>
+                        <p className="text-sm text-muted-foreground">{format(new Date(reminder.date), 'PPP p')}</p>
+                        {reminder.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{reminder.description}</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center h-full">
-                    <Bell className="h-10 w-10 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">No reminders</h3>
-                    <p className="text-muted-foreground mt-1">No reminders were set for this interaction.</p>
-                  </div>
-                )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleUpdateReminderStatus(reminder._id)}
+                        className={reminder.status === 'completed' ? 'text-green-600' : ''}
+                      >
+                        {reminder.status === 'completed' ? 'Mark Incomplete' : 'Mark Complete'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </TabsContent>
               
               <TabsContent value="attachments" className="space-y-4 min-h-[300px]">

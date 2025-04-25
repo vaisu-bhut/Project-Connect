@@ -66,10 +66,11 @@ export interface InteractionDetail extends InteractionBase {
 
 // Reminder types
 export interface ReminderBase {
-  id: string;
+  _id: string;
   title: string;
   date: Date;
-  isCompleted: boolean;
+  time: string;
+  status: 'completed' | 'incomplete';
   interactionId?: string;
   description?: string;
   createdAt: Date;
