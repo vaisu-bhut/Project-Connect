@@ -4,7 +4,9 @@ const API_URL = 'https://project-connect-ie7t.onrender.com/api/contacts';
 
 export const contactService = {
   async getAllContacts(): Promise<ContactBase[]> {
-    const response = await fetch(API_URL);
+    const response = await fetch(API_URL, {
+      credentials: 'include',
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch contacts');
     }
@@ -12,7 +14,9 @@ export const contactService = {
   },
 
   async getContact(id: string): Promise<ContactBase> {
-    const response = await fetch(`${API_URL}/${id}`);
+    const response = await fetch(`${API_URL}/${id}`, {
+      credentials: 'include',
+    });
     if (response.status === 404) {
       throw new Error('Contact not found');
     }
@@ -28,6 +32,7 @@ export const contactService = {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         ...contact,
         socialProfiles: contact.socialProfiles || [],
@@ -46,6 +51,7 @@ export const contactService = {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         ...contact,
         socialProfiles: contact.socialProfiles || [],
@@ -61,6 +67,7 @@ export const contactService = {
   async deleteContact(id: string): Promise<void> {
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'DELETE',
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error('Failed to delete contact');
