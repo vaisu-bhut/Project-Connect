@@ -98,6 +98,7 @@ const Interactions = () => {
       });
       setInteractions(prev => [newInteraction, ...prev]);
       toast.success("Interaction logged successfully!");
+      return newInteraction;
     } catch (error) {
       console.error('Failed to log interaction:', error);
       toast.error('Failed to log interaction');

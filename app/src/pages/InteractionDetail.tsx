@@ -72,7 +72,6 @@ const InteractionDetail = () => {
   const handleEditInteraction = async (data: Omit<InteractionBase, '_id' | 'createdAt' | 'updatedAt'>) => {
     try {
       if (id) {
-        // Ensure date is properly formatted
         const formattedData = {
           ...data,
           date: new Date(data.date)
@@ -81,6 +80,7 @@ const InteractionDetail = () => {
         setInteraction(updatedInteraction);
         toast.success("Interaction updated successfully!");
         setIsEditing(false);
+        return updatedInteraction;
       }
     } catch (error) {
       console.error('Failed to update interaction:', error);
@@ -111,6 +111,7 @@ const InteractionDetail = () => {
         updatedAt: new Date()
       });
       toast.success("Interaction logged successfully!");
+      return newInteraction;
     } catch (error) {
       console.error('Failed to log interaction:', error);
       toast.error('Failed to log interaction');
