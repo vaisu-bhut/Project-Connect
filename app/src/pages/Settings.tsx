@@ -55,7 +55,7 @@ export default function Settings() {
 
   const fetchUserSettings = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -69,7 +69,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/user/notifications', {
+      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/notifications', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/user/privacy', {
+      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/privacy', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function Settings() {
       });
 
       // Update profile with new image
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
