@@ -2,7 +2,10 @@ const CACHE_NAME = 'conlieve-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-192x192.svg',
+  '/icon-512x512.svg',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', event => {
@@ -32,5 +35,19 @@ self.addEventListener('fetch', event => {
             return response;
           });
       })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 }); 

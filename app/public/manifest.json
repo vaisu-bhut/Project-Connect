@@ -1,22 +1,26 @@
 {
   "short_name": "ConLieve",
   "name": "ConLieve - Network Management",
+  "description": "Connect with your community through ConLieve",
   "icons": [
     {
-      "src": "icon-192x192.png",
+      "src": "icon-192x192.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "icon-512x512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#6D28D9",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "scope": "/",
+  "orientation": "portrait",
+  "prefer_related_applications": false
 } 
