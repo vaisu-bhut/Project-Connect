@@ -1,6 +1,6 @@
 import { ReminderBase } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'https://connect-server.vasubhut.com/api';
 
 export const reminderService = {
   async getReminders(interactionId?: string): Promise<ReminderBase[]> {

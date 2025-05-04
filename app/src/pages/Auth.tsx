@@ -15,7 +15,7 @@ export default function Auth() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = 'https://connect-server.vasubhut.com/api';
   const navigate = useNavigate();
   const { login } = useAuth();
 
