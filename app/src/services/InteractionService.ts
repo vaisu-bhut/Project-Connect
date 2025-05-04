@@ -1,6 +1,6 @@
 import { InteractionBase, ContactBase } from '@/types';
 
-const API_URL = 'https://project-connect-ie7t.onrender.com/api/interactions';
+const API_URL = 'https://connect-server.vasubhut.com/api/interactions';
 
 interface ApiInteraction {
   _id: string;

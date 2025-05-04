@@ -1,6 +1,6 @@
 import { ReminderBase } from '@/types';
 
-const API_URL = 'https://project-connect-ie7t.onrender.com/api/reminders';
+const API_URL = 'https://connect-server.vasubhut.com/api/reminders';
 
 export const reminderService = {
   async getReminders(interactionId?: string): Promise<ReminderBase[]> {

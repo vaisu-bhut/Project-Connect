@@ -1,6 +1,6 @@
 import { ContactBase } from '@/types';
 
-const API_URL = 'https://project-connect-ie7t.onrender.com/api/contacts';
+const API_URL = 'https://connect-server.vasubhut.com/api/contacts';
 
 export const contactService = {
   async getAllContacts(): Promise<ContactBase[]> {

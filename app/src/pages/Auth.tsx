@@ -36,7 +36,7 @@ export default function Auth() {
         await login(formData.email, formData.password);
       } else {
         // Handle registration
-        const response = await fetch('https://project-connect-ie7t.onrender.com/api/auth/register', {
+        const response = await fetch('https://connect-server.vasubhut.com/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

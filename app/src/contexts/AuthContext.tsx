@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
+      const response = await fetch('https://connect-server.vasubhut.com/api/user/profile', {
         credentials: 'include',
       });
 
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('https://project-connect-ie7t.onrender.com/api/auth/login', {
+    const response = await fetch('https://connect-server.vasubhut.com/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await fetch('https://project-connect-ie7t.onrender.com/api/auth/logout', {
+    await fetch('https://connect-server.vasubhut.com/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
     });
