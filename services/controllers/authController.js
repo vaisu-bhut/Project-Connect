@@ -1,6 +1,7 @@
 // services/controllers/authController.js
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+require("dotenv").config();
 
 const authController = {
   async register(req, res) {
@@ -25,7 +26,7 @@ const authController = {
       // Generate JWT token
       const token = jwt.sign(
         { userId: user._id },
-        process.env.JWT_SECRET || 'your-secret-key',
+        process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
 
@@ -70,7 +71,7 @@ const authController = {
       // Generate JWT token
       const token = jwt.sign(
         { userId: user._id },
-        process.env.JWT_SECRET || 'your-secret-key',
+        process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
 

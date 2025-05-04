@@ -1,9 +1,6 @@
-// services/app.js
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs').promises;
 require('dotenv').config();
 
 const connectDB = require('./config/database');
@@ -16,15 +13,6 @@ const authMiddleware = require('./middleware/auth');
 
 const app = express();
 
-// Create uploads directory if it doesn't exist
-(async () => {
-  try {
-    await fs.access('uploads');
-  } catch {
-    await fs.mkdir('uploads');
-  }
-})();
-
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -34,9 +22,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -53,7 +38,7 @@ app.get('/api/protected', authMiddleware, (req, res) => {
 // Connect to database
 connectDB();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

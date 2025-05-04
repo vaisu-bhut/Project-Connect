@@ -15,6 +15,7 @@ export default function Auth() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -36,7 +37,7 @@ export default function Auth() {
         await login(formData.email, formData.password);
       } else {
         // Handle registration
-        const response = await fetch('https://connect-server.vasubhut.com/api/auth/register', {
+        const response = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

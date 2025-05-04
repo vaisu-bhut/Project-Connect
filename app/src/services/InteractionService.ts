@@ -1,6 +1,6 @@
 import { InteractionBase, ContactBase } from '@/types';
 
-const API_URL = 'https://connect-server.vasubhut.com/api/interactions';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface ApiInteraction {
   _id: string;
@@ -32,7 +32,7 @@ interface ApiReminder {
 
 export const interactionService = {
   async getAllInteractions(): Promise<InteractionBase[]> {
-    const response = await fetch(API_URL, {
+    const response = await fetch(`${API_URL}/interactions`, {
       credentials: 'include'
     });
     if (!response.ok) {
@@ -54,7 +54,7 @@ export const interactionService = {
   },
 
   async getInteractionById(id: string): Promise<InteractionBase> {
-    const response = await fetch(`${API_URL}/single/${id}`, {
+    const response = await fetch(`${API_URL}/interactions/single/${id}`, {
       credentials: 'include'
     });
     if (!response.ok) {
@@ -76,7 +76,7 @@ export const interactionService = {
   },
 
   async getInteractionsByContactId(contactId: string): Promise<InteractionBase[]> {
-    const response = await fetch(`${API_URL}/${contactId}`, {
+    const response = await fetch(`${API_URL}/interactions/${contactId}`, {
       credentials: 'include'
     });
     if (!response.ok) {
@@ -98,7 +98,7 @@ export const interactionService = {
   },
 
   async createInteraction(interaction: Omit<InteractionBase, '_id'>): Promise<InteractionBase> {
-    const response = await fetch(API_URL, {
+    const response = await fetch(`${API_URL}/interactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export const interactionService = {
   },
 
   async updateInteraction(id: string, interaction: Partial<InteractionBase>): Promise<InteractionBase> {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/interactions/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export const interactionService = {
   },
 
   async deleteInteraction(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/interactions/${id}`, {
       method: 'DELETE',
       credentials: 'include'
     });

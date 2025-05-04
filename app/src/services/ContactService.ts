@@ -1,10 +1,10 @@
 import { ContactBase } from '@/types';
 
-const API_URL = 'https://connect-server.vasubhut.com/api/contacts';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const contactService = {
   async getAllContacts(): Promise<ContactBase[]> {
-    const response = await fetch(API_URL, {
+    const response = await fetch(`${API_URL}/contacts`, {
       credentials: 'include',
     });
     if (!response.ok) {
@@ -14,7 +14,7 @@ export const contactService = {
   },
 
   async getContact(id: string): Promise<ContactBase> {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/contacts/${id}`, {
       credentials: 'include',
     });
     if (response.status === 404) {
@@ -27,7 +27,7 @@ export const contactService = {
   },
 
   async createContact(contact: Omit<ContactBase, '_id'>): Promise<ContactBase> {
-    const response = await fetch(API_URL, {
+    const response = await fetch(`${API_URL}/contacts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export const contactService = {
   },
 
   async updateContact(id: string, contact: Partial<ContactBase>): Promise<ContactBase> {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/contacts/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export const contactService = {
   },
 
   async deleteContact(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/contacts/${id}`, {
       method: 'DELETE',
       credentials: 'include',
     });

@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { toast } from 'sonner';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface UserSettings {
   profile: {
     firstName: string;
@@ -55,7 +57,7 @@ export default function Settings() {
 
   const fetchUserSettings = async () => {
     try {
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
+      const response = await fetch(`${API_URL}/user/profile`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -69,7 +71,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
+      const response = await fetch(`${API_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +93,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/notifications', {
+      const response = await fetch(`${API_URL}/user/notifications`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +115,7 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/privacy', {
+      const response = await fetch(`${API_URL}/user/privacy`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +161,7 @@ export default function Settings() {
       });
 
       // Update profile with new image
-      const response = await fetch('https://project-connect-ie7t.onrender.com/api/user/profile', {
+      const response = await fetch(`${API_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
