@@ -1,6 +1,6 @@
 import { InteractionBase, ContactBase } from '@/types';
 
-const API_URL = 'https://connect-server.vasubhut.com/api';
+const API_URL = 'https://drn1acb8of.execute-api.us-east-1.amazonaws.com/api';
 
 interface ApiInteraction {
   _id: string;
