@@ -13,6 +13,7 @@ const reminderRoutes = require("./routes/reminderRoutes");
 const authMiddleware = require("./middleware/auth");
 
 const app = express();
+app.use(express.json())
 
 // Middleware
 
