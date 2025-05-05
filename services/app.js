@@ -16,49 +16,49 @@ const app = express();
 
 // Middleware
 
-app.use((req, res, next) => {
-  // Skip GET/HEAD/DELETE/OPTIONS requests without content
-  if (
-    ["GET", "HEAD", "DELETE", "OPTIONS"].includes(req.method) &&
-    !req.headers["content-length"]
-  ) {
-    return next();
-  }
+// app.use((req, res, next) => {
+//   // Skip GET/HEAD/DELETE/OPTIONS requests without content
+//   if (
+//     ["GET", "HEAD", "DELETE", "OPTIONS"].includes(req.method) &&
+//     !req.headers["content-length"]
+//   ) {
+//     return next();
+//   }
 
-  const chunks = [];
-  req.on("data", (chunk) => chunks.push(chunk));
-  req.on("end", () => {
-    if (chunks.length === 0) {
-      req.body = {};
-      return next();
-    }
+//   const chunks = [];
+//   req.on("data", (chunk) => chunks.push(chunk));
+//   req.on("end", () => {
+//     if (chunks.length === 0) {
+//       req.body = {};
+//       return next();
+//     }
 
-    const buffer = Buffer.concat(chunks);
-    req.rawBody = buffer.toString("utf8");
+//     const buffer = Buffer.concat(chunks);
+//     req.rawBody = buffer.toString("utf8");
 
-    // Only attempt JSON parse for JSON content types or if body exists
-    if (
-      req.headers["content-type"]?.includes("application/json") ||
-      req.rawBody.trim().startsWith("{") ||
-      req.rawBody.trim().startsWith("[")
-    ) {
-      try {
-        req.body = JSON.parse(req.rawBody);
-        next();
-      } catch (e) {
-        console.error("JSON Parse Error:", e);
-        res.status(400).json({
-          error: "Invalid JSON",
-          received: req.rawBody,
-          message: e.message,
-        });
-      }
-    } else {
-      req.body = req.rawBody;
-      next();
-    }
-  });
-});
+//     // Only attempt JSON parse for JSON content types or if body exists
+//     if (
+//       req.headers["content-type"]?.includes("application/json") ||
+//       req.rawBody.trim().startsWith("{") ||
+//       req.rawBody.trim().startsWith("[")
+//     ) {
+//       try {
+//         req.body = JSON.parse(req.rawBody);
+//         next();
+//       } catch (e) {
+//         console.error("JSON Parse Error:", e);
+//         res.status(400).json({
+//           error: "Invalid JSON",
+//           received: req.rawBody,
+//           message: e.message,
+//         });
+//       }
+//     } else {
+//       req.body = req.rawBody;
+//       next();
+//     }
+//   });
+// });
 
 app.use(
   cors({
@@ -81,15 +81,15 @@ app.use((req, res, next) => {
 
 app.use(cookieParser());
 
-app.use((req, res, next) => {
-  console.log("Incoming Request:", {
-    method: req.method,
-    path: req.path,
-    body: req.body, // Will now show parsed JSON
-    headers: req.headers,
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log("Incoming Request:", {
+//     method: req.method,
+//     path: req.path,
+//     body: req.body, // Will now show parsed JSON
+//     headers: req.headers,
+//   });
+//   next();
+// });
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -116,22 +116,25 @@ app.get("/api", (req, res) => {
 //   res.status(500).json({ error: 'Internal Server Error' });
 // });
 
-app.post("/api/debug-json", (req, res) => {
-  res.json({
-    success: true,
-    bodyType: typeof req.body,
-    body: req.body,
-    rawBody: req.rawBody,
-    headers: req.headers,
-  });
-});
+// app.post("/api/debug-json", (req, res) => {
+//   res.json({
+//     success: true,
+//     bodyType: typeof req.body,
+//     body: req.body,
+//     rawBody: req.rawBody,
+//     headers: req.headers,
+//   });
+// });
 
 // Connect to database
 connectDB();
 
-module.exports.handler = serverless(app);
-// Keep this for local development
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT;
+const PORT = process.env.PORT;
   app.listen(PORT, () => console.log(`Local server running on port ${PORT}`));
-}
+
+// module.exports.handler = serverless(app);
+// // Keep this for local development
+// if (process.env.NODE_ENV !== "production") {
+//   const PORT = process.env.PORT;
+//   app.listen(PORT, () => console.log(`Local server running on port ${PORT}`));
+// }
