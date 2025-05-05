@@ -1,6 +1,6 @@
 org: projectconnect
 app: connect-server
-service: express-lambda-app
+service: connect-server
 
 provider:
   name: aws
@@ -10,9 +10,6 @@ provider:
   timeout: 30
   environment:
     NODE_ENV: production
-  deploymentBucket:
-    name: server32123
-    serverSideEncryption: AES256
   httpApi:
     cors:
       allowedOrigins:
@@ -42,9 +39,6 @@ package:
   excludeDevDependencies: true
 
 custom:
-  webpack:
-    packager: 'npm'
-    includeModules: true  
   serverless-offline:
     noPrependStageInUrl: true
     ignoreJWTSignature: true
