@@ -1,6 +1,6 @@
 import { ReminderBase } from '@/types';
 
-const API_URL = 'https://drn1acb8of.execute-api.us-east-1.amazonaws.com/api';
+const API_URL = 'https://connect-server.vasubhut.com/api';
 
 export const reminderService = {
   async getReminders(interactionId?: string): Promise<ReminderBase[]> {

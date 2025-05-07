@@ -20,7 +20,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const API_URL = 'https://drn1acb8of.execute-api.us-east-1.amazonaws.com/api';
+  const API_URL = 'https://connect-server.vasubhut.com/api/api';
 
   useEffect(() => {
     checkAuth();

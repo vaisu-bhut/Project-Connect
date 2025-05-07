@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = 'https://drn1acb8of.execute-api.us-east-1.amazonaws.com/api';
+const API_URL = 'https://connect-server.vasubhut.com/api';
 
 interface UserSettings {
   profile: {
