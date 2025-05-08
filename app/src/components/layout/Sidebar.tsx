@@ -9,6 +9,7 @@ import {
   Bell, 
   Settings, 
   LogOut,
+  GitCompareArrows,
   Menu
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -77,6 +78,9 @@ export function Sidebar() {
               CL
             </div>
             <span className="font-bold text-lg text-network-purple">ConLieve</span>
+            <Button variant="outline">
+              <span className="transition-opacity duration-300">Beta v1.0</span>
+            </Button>
           </div>
         ) : (
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-network-purple to-network-blue mx-auto flex items-center justify-center text-white font-bold animate-pulse-slow">

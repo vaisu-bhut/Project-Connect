@@ -42,6 +42,12 @@ export function MobileNav() {
           </span>
         </div>
 
+        <Button variant="outline">
+            <span className="ml-2 transition-opacity duration-300">
+              Beta access v1.0
+            </span>
+        </Button>
+
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -84,14 +90,16 @@ export function MobileNav() {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t z-30 flex items-center justify-around">
-        <Link to="/" className="mobile-nav-button">
+        <Link to="/dashboard" className="mobile-nav-button">
           <LayoutDashboard
             size={20}
-            className={location.pathname === "/" ? "text-network-purple" : ""}
+            className={
+              location.pathname === "/dashboard" ? "text-network-purple" : ""
+            }
           />
           <span
             className={`text-xs ${
-              location.pathname === "/" ? "text-network-purple" : ""
+              location.pathname === "/dashboard" ? "text-network-purple" : ""
             }`}
           >
             Dashboard

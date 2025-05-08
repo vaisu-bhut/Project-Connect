@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Auth from '@/pages/Auth';
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/layout/Layout";
+import Homepage from "./pages/Homepage";
 import Dashboard from "./pages/Dashboard";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
@@ -26,6 +27,7 @@ const App = () => (
       <AuthProvider>
         <Router>
           <Routes>
+          <Route path="/" element={<Homepage/>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route
@@ -98,7 +100,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

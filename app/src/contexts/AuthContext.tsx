@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: 'include',
     });
     setUser(null);
-    window.location.href = '/auth';
+    window.location.href = '/';
   };
 
   const value = {

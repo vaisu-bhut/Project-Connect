@@ -1,9 +1,13 @@
-const Contact = require('../models/Contact');
+const Contact = require("../models/Contact");
 
 // Get all contacts
 exports.getAllContacts = async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
+    const userId = req.userId;
+
+    const contacts = await Contact.find({
+      userId: userId,
+    }).sort({ createdAt: -1 });
     res.json(contacts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -15,21 +19,26 @@ exports.getContact = async (req, res) => {
   try {
     const contact = await Contact.findById(req.params.id);
     if (!contact) {
-      return res.status(404).json({ message: 'Contact not' });
+      return res.status(404).json({ message: "Contact not" });
     }
     res.json(contact);
   } catch (error) {
-    if (error.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Contact not' });
+    if (error.kind === "ObjectId") {
+      return res.status(404).json({ message: "Contact not" });
     }
     res.status(500).json({ message: error.message });
   }
 };
 
 // Create a new contact
-exports.createContact = async (req, res) => {   
+exports.createContact = async (req, res) => {
   try {
-    const contact = new Contact(req.body);
+    const userId = req.userId;
+    const interaction = new Contact({
+      ...req.body,
+      userId,
+    });
+    const contact = new Contact(interaction);
     const savedContact = await contact.save();
     res.status(201).json(savedContact);
   } catch (error) {
@@ -40,13 +49,18 @@ exports.createContact = async (req, res) => {
 // Update a contact
 exports.updateContact = async (req, res) => {
   try {
+    const userId = req.userId;
+
     const contact = await Contact.findByIdAndUpdate(
-      req.params.id,
+      { _id: req.params.id, userId },
       req.body,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+      }
     );
     if (!contact) {
-      return res.status(404).json({ message: 'Contact not found' });
+      return res.status(404).json({ message: "Contact not found" });
     }
     res.json(contact);
   } catch (error) {
@@ -57,12 +71,15 @@ exports.updateContact = async (req, res) => {
 // Delete a contact
 exports.deleteContact = async (req, res) => {
   try {
-    const contact = await Contact.findByIdAndDelete(req.params.id);
+    const contact = await Contact.findByIdAndDelete({
+      _id: req.params.id,
+      userId,
+    });
     if (!contact) {
-      return res.status(404).json({ message: 'Contact not found' });
+      return res.status(404).json({ message: "Contact not found" });
     }
-    res.json({ message: 'Contact deleted successfully' });
+    res.json({ message: "Contact deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}; 
+};
