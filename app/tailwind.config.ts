@@ -78,6 +78,13 @@ export default {
 						light: '#47E1E2',
 						dark: '#00AAAB'
 					}
+				},
+				conlieve: {
+					primary: '#6E59A5',
+					secondary: '#D6BCFA',
+					accent: '#F2FCE2',
+					muted: '#F1F0FB',
+					dark: '#1A1F2C',
 				}
 			},
 			borderRadius: {
@@ -152,6 +159,7 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float': 'float 6s ease-in-out infinite',
 				'fade-in': 'fade-in 0.3s ease-out',
 				'fade-out': 'fade-out 0.3s ease-out',
 				'scale-in': 'scale-in 0.2s ease-out',
