@@ -33,7 +33,7 @@ interface ApiReminder {
 export const interactionService = {
   async getAllInteractions(): Promise<InteractionBase[]> {
     const response = await fetch(`${API_URL}/interactions`, {
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to fetch interactions');
@@ -55,7 +55,7 @@ export const interactionService = {
 
   async getInteractionById(id: string): Promise<InteractionBase> {
     const response = await fetch(`${API_URL}/interactions/single/${id}`, {
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to fetch interaction');
@@ -77,7 +77,7 @@ export const interactionService = {
 
   async getInteractionsByContactId(contactId: string): Promise<InteractionBase[]> {
     const response = await fetch(`${API_URL}/interactions/${contactId}`, {
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to fetch interactions');
@@ -102,8 +102,8 @@ export const interactionService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      credentials: 'include',
       body: JSON.stringify(interaction),
     });
     if (!response.ok) {
@@ -117,8 +117,8 @@ export const interactionService = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      credentials: 'include',
       body: JSON.stringify(interaction),
     });
     if (!response.ok) {
@@ -130,7 +130,7 @@ export const interactionService = {
   async deleteInteraction(id: string): Promise<void> {
     const response = await fetch(`${API_URL}/interactions/${id}`, {
       method: 'DELETE',
-      credentials: 'include'
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to delete interaction');

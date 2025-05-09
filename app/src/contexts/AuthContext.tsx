@@ -29,7 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       const response = await fetch(`${API_URL}/user/profile`, {
-        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
       if (response.ok) {
@@ -75,14 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: data.user.name,
       profilePic: data.user.profilePic
     });
+    localStorage.setItem('token', data.token);
   };
 
   const logout = async () => {
     await fetch(`${API_URL}/auth/logout`, {
       method: 'POST',
-      credentials: 'include',
     });
     setUser(null);
+    localStorage.removeItem('token');
     window.location.href = '/';
   };
 

@@ -58,7 +58,7 @@ export default function Settings() {
   const fetchUserSettings = async () => {
     try {
       const response = await fetch(`${API_URL}/user/profile`, {
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
       setSettings(data);
@@ -75,8 +75,8 @@ export default function Settings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        credentials: 'include',
         body: JSON.stringify(settings.profile),
       });
 
@@ -97,8 +97,8 @@ export default function Settings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        credentials: 'include',
         body: JSON.stringify(settings.notificationPreferences),
       });
 
@@ -119,8 +119,8 @@ export default function Settings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        credentials: 'include',
         body: JSON.stringify(settings.dataPrivacy),
       });
 
@@ -165,8 +165,8 @@ export default function Settings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        credentials: 'include',
         body: JSON.stringify({
           ...settings.profile,
           profilePic: base64String

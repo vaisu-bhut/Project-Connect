@@ -28,16 +28,6 @@ const authController = {
         expiresIn: "7d",
       });
 
-      // Set cookie
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        domain:
-          process.env.NODE_ENV === "production" ? ".vasubhut.com" : "localhost",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 24 hours
-      });
-
       res.status(201).json({
         message: "User created successfully",
         user: {
@@ -45,6 +35,7 @@ const authController = {
           email: user.email,
           name: user.name,
         },
+        token: token, 
       });
     } catch (error) {
       res
@@ -74,16 +65,6 @@ const authController = {
         expiresIn: "7d",
       });
 
-      // Set cookie
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        domain:
-          process.env.NODE_ENV === "production" ? ".vasubhut.com" : "localhost",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 24 hours
-      });
-
       res.json({
         message: "Login successful",
         user: {
@@ -91,6 +72,7 @@ const authController = {
           email: user.email,
           name: user.name,
         },
+        token: token,
       });
     } catch (error) {
       res
@@ -100,16 +82,6 @@ const authController = {
   },
 
   async logout(req, res) {
-    res.cookie("token", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      domain:
-        process.env.NODE_ENV === "production" ? ".vasubhut.com" : "localhost",
-      expires: new Date(0),
-      path: "/",  
-    });
-
     res.json({ message: "Logged out successfully" });
   },
 };

@@ -5,7 +5,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "deploy": "sls deploy --stage prod",
+    "remove": "sls remove",
+    "offline": "sls offline start",
+    "logs": "sls logs -f api -t"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +23,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
-    "multer": "^1.4.5-lts.2"
+    "multer": "^1.4.5-lts.2",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -28,6 +33,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.14.1",
     "nodemon": "^3.1.9",
+    "serverless-offline": "^14.4.0",
     "typescript": "^5.8.3"
   }
 }

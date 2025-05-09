@@ -1,0 +1,60 @@
+org: projectconnect
+app: connect-server
+service: connect-serverless
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  memorySize: 512
+  timeout: 30
+  stage: ${opt:stage, 'production'}
+  environment:
+    NODE_ENV: ${self:provider.stage}
+  apiGateway:
+    minimumCompressionSize: 1024
+  httpApi:
+    cors:
+      allowedOrigins:
+        - 'http://localhost:8080'
+        - 'https://connect.vasubhut.com'
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+
+
+functions:
+  api:
+    handler: lambda.handler
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
+
+plugins:
+  - serverless-offline
+
+package:
+  patterns:
+    - '!node_modules/.bin/**'
+    - '!node_modules/.cache/**'
+    - '!.git/**'
+    - '!.github/**'
+  individually: false
+  excludeDevDependencies: true
+
+custom:
+  serverless-offline:
+    httpPort: 5000
+    noPrependStageInUrl: true
+    useChildProcesses: true # Add this for better route handling

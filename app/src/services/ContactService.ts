@@ -5,7 +5,7 @@ const API_URL = 'https://connect-services.vasubhut.com/api';
 export const contactService = {
   async getAllContacts(): Promise<ContactBase[]> {
     const response = await fetch(`${API_URL}/contacts`, {
-      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to fetch contacts');
@@ -15,7 +15,7 @@ export const contactService = {
 
   async getContact(id: string): Promise<ContactBase> {
     const response = await fetch(`${API_URL}/contacts/${id}`, {
-      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (response.status === 404) {
       throw new Error('Contact not found');
@@ -31,8 +31,8 @@ export const contactService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      credentials: 'include',
       body: JSON.stringify({
         ...contact,
         socialProfiles: contact.socialProfiles || [],
@@ -50,6 +50,7 @@ export const contactService = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -67,7 +68,7 @@ export const contactService = {
   async deleteContact(id: string): Promise<void> {
     const response = await fetch(`${API_URL}/contacts/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
     if (!response.ok) {
       throw new Error('Failed to delete contact');
