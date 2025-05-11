@@ -82,6 +82,7 @@ export default function Auth() {
                 <p className="text-sm text-blue-800">
                   To test the site, you can use the following credentials: email: <span className="font-medium">john.locke@lost.com</span>, password: <span className="font-medium">JohnLocke@Jackob</span>
                 </p>
+                <p className="text-sm text-blue-800"><span className="font-medium">Note:</span> This site might have a slight delay upto 30 seconds while Logging In !!!</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
