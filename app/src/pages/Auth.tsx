@@ -78,6 +78,11 @@ export default function Auth() {
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
+              <div className="bg-blue-50 p-3 rounded-md mb-4">
+                <p className="text-sm text-blue-800">
+                  To test the site, you can use the following credentials: email: <span className="font-medium">john.locke@lost.com</span>, password: <span className="font-medium">JohnLocke@Jackob</span>
+                </p>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Input
@@ -148,4 +153,4 @@ export default function Auth() {
       </Card>
     </div>
   );
-} 
+}

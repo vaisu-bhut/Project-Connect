@@ -73,7 +73,6 @@ exports.deleteContact = async (req, res) => {
   try {
     const contact = await Contact.findByIdAndDelete({
       _id: req.params.id,
-      userId,
     });
     if (!contact) {
       return res.status(404).json({ message: "Contact not found" });
