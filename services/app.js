@@ -39,3 +39,9 @@ connectDB();
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Local server running on port ${PORT}`));
+
+
+// MONGODB_URI
+// JWT_SECRET
+// PORT
+// NODE_ENV
